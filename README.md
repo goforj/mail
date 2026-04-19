@@ -1,19 +1,23 @@
-# mail
+<p align="center">
+  <strong>mail</strong>
+</p>
 
-Fluent email composition and pluggable delivery for GoForj packages and apps.
+<p align="center">
+  Fluent email composition and pluggable delivery for GoForj packages and apps.
+</p>
+
+<p align="center">
+<!-- test-count:embed:start -->
+<img src="https://img.shields.io/badge/unit_tests-23-brightgreen" alt="Unit tests (executed count)">
+<img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">
+<!-- test-count:embed:end -->
+</p>
 
 ## Installation
 
 ```bash
 go get github.com/goforj/mail
 ```
-
-## Test Counts
-
-<!-- test-count:embed:start -->
-<img src="https://img.shields.io/badge/unit_tests-23-brightgreen" alt="Unit tests (executed count)">
-<img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">
-<!-- test-count:embed:end -->
 
 ## Quick Start
 
