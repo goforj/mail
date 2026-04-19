@@ -97,6 +97,7 @@ func parseFuncs(root string) ([]*FuncDoc, error) {
 		{path: filepath.Join(root, "maillog"), prefix: "maillog"},
 		{path: filepath.Join(root, "mailpostmark"), prefix: "mailpostmark"},
 		{path: filepath.Join(root, "mailresend"), prefix: "mailresend"},
+		{path: filepath.Join(root, "mailsendgrid"), prefix: "mailsendgrid"},
 		{path: filepath.Join(root, "mailses"), prefix: "mailses"},
 		{path: filepath.Join(root, "mailsmtp"), prefix: "mailsmtp"},
 	}

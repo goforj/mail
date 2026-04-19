@@ -8,7 +8,7 @@
 
 <p align="center">
 <!-- test-count:embed:start -->
-<img src="https://img.shields.io/badge/unit_tests-23-brightgreen" alt="Unit tests (executed count)">
+<img src="https://img.shields.io/badge/unit_tests-27-brightgreen" alt="Unit tests (executed count)">
 <img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">
 <!-- test-count:embed:end -->
 </p>
@@ -78,6 +78,7 @@ func main() {
 | **Resend** | [mailresend.Driver.Send](#mailresend-driver-send) [mailresend.New](#mailresend-new) |
 | **SES** | [mailses.Driver.Send](#mailses-driver-send) [mailses.New](#mailses-new) |
 | **SMTP** | [mailsmtp.Driver.Send](#mailsmtp-driver-send) [mailsmtp.New](#mailsmtp-new) [mailsmtp.Render](#mailsmtp-render) |
+| **SendGrid** | [mailsendgrid.Driver.Send](#mailsendgrid-driver-send) [mailsendgrid.New](#mailsendgrid-new) |
 | **Testing** | [mailfake.Driver.Last](#mailfake-driver-last) [mailfake.Driver.Messages](#mailfake-driver-messages) [mailfake.Driver.Reset](#mailfake-driver-reset) [mailfake.Driver.Send](#mailfake-driver-send) [mailfake.Driver.SentCount](#mailfake-driver-sentcount) [mailfake.Driver.SetError](#mailfake-driver-seterror) [mailfake.New](#mailfake-new) |
 
 
@@ -794,6 +795,43 @@ raw, _ := mailsmtp.Render(mail.Message{
 	Text:    "hello world",
 })
 fmt.Println(strings.Contains(string(raw), "Subject: Welcome"))
+// true
+```
+
+### SendGrid
+
+#### <a id="mailsendgrid-driver-send"></a>`mailsendgrid.Driver.Send`
+
+Send validates and transmits one message through SendGrid.
+
+send one message through SendGrid:
+
+```go
+driver, _ := mailsendgrid.New(mailsendgrid.Config{
+	APIKey:   "SG.test_key",
+	Endpoint: "http://127.0.0.1:1",
+})
+err := driver.Send(context.Background(), mail.Message{
+	From:    &mail.Recipient{Email: "no-reply@example.com"},
+	To:      []mail.Recipient{{Email: "alice@example.com"}},
+	Subject: "Welcome",
+	Text:    "hello world",
+})
+fmt.Println(err == nil)
+// false
+```
+
+#### <a id="mailsendgrid-new"></a>`mailsendgrid.New`
+
+New creates a SendGrid mail driver from the given config.
+
+configure a SendGrid mail driver:
+
+```go
+driver, _ := mailsendgrid.New(mailsendgrid.Config{
+	APIKey: "SG.test_key",
+})
+fmt.Println(driver != nil)
 // true
 ```
 
