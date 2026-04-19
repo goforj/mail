@@ -11,7 +11,7 @@ go get github.com/goforj/mail
 ## Test Counts
 
 <!-- test-count:embed:start -->
-    <img src="https://img.shields.io/badge/unit_tests-15-brightgreen" alt="Unit tests (executed count)">
+    <img src="https://img.shields.io/badge/unit_tests-19-brightgreen" alt="Unit tests (executed count)">
     <img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">
 <!-- test-count:embed:end -->
 
@@ -69,6 +69,7 @@ func main() {
 | **Delivery** | [Mailer.Send](#mailer-send) [MessageBuilder.Build](#messagebuilder-build) [MessageBuilder.Send](#messagebuilder-send) |
 | **Logging** | [maillog.Driver.Send](#maillog-driver-send) [maillog.New](#maillog-new) [maillog.WithBodies](#maillog-withbodies) [maillog.WithNow](#maillog-withnow) |
 | **Message Model** | [Message.Clone](#message-clone) [Message.Validate](#message-validate) |
+| **Postmark** | [mailpostmark.Driver.Send](#mailpostmark-driver-send) [mailpostmark.New](#mailpostmark-new) |
 | **Resend** | [mailresend.Driver.Send](#mailresend-driver-send) [mailresend.New](#mailresend-new) |
 | **SMTP** | [mailsmtp.Driver.Send](#mailsmtp-driver-send) [mailsmtp.New](#mailsmtp-new) [mailsmtp.Render](#mailsmtp-render) |
 | **Testing** | [mailfake.Driver.Last](#mailfake-driver-last) [mailfake.Driver.Messages](#mailfake-driver-messages) [mailfake.Driver.Reset](#mailfake-driver-reset) [mailfake.Driver.Send](#mailfake-driver-send) [mailfake.Driver.SentCount](#mailfake-driver-sentcount) [mailfake.Driver.SetError](#mailfake-driver-seterror) [mailfake.New](#mailfake-new) |
@@ -578,6 +579,43 @@ err := (mail.Message{
 	Text:    "hello world",
 }).Validate()
 fmt.Println(err == nil)
+// true
+```
+
+### Postmark
+
+#### <a id="mailpostmark-driver-send"></a>`mailpostmark.Driver.Send`
+
+Send validates and transmits one message through Postmark.
+
+send one message through Postmark:
+
+```go
+driver, _ := mailpostmark.New(mailpostmark.Config{
+	ServerToken: "pm_test_token",
+	Endpoint:    "http://127.0.0.1:1",
+})
+err := driver.Send(context.Background(), mail.Message{
+	From:    &mail.Recipient{Email: "no-reply@example.com"},
+	To:      []mail.Recipient{{Email: "alice@example.com"}},
+	Subject: "Welcome",
+	Text:    "hello world",
+})
+fmt.Println(err == nil)
+// false
+```
+
+#### <a id="mailpostmark-new"></a>`mailpostmark.New`
+
+New creates a Postmark mail driver from the given config.
+
+configure a Postmark mail driver:
+
+```go
+driver, _ := mailpostmark.New(mailpostmark.Config{
+	ServerToken: "pm_test_token",
+})
+fmt.Println(driver != nil)
 // true
 ```
 
