@@ -120,7 +120,7 @@ _Generated from public API comments and examples._
 
 ### Composition
 
-#### <a id="mailer-message"></a>`Mailer.Message`
+#### <a id="mailer-message"></a>Mailer.Message
 
 Message starts a new fluent message builder bound to this mailer.
 
@@ -138,7 +138,7 @@ fmt.Println(fake.SentCount())
 // 1
 ```
 
-#### <a id="messagebuilder-bcc"></a>`MessageBuilder.Bcc`
+#### <a id="messagebuilder-bcc"></a>MessageBuilder.Bcc
 
 Bcc appends one blind-carbon-copy recipient.
 
@@ -155,7 +155,7 @@ fmt.Println(msg.Bcc[0].Email)
 // audit@example.com
 ```
 
-#### <a id="messagebuilder-cc"></a>`MessageBuilder.Cc`
+#### <a id="messagebuilder-cc"></a>MessageBuilder.Cc
 
 Cc appends one carbon-copy recipient.
 
@@ -172,7 +172,7 @@ fmt.Println(msg.Cc[0].Email)
 // manager@example.com
 ```
 
-#### <a id="messagebuilder-from"></a>`MessageBuilder.From`
+#### <a id="messagebuilder-from"></a>MessageBuilder.From
 
 From sets the from recipient.
 
@@ -189,7 +189,7 @@ fmt.Println(msg.From.Email)
 // team@example.com
 ```
 
-#### <a id="messagebuilder-message"></a>`MessageBuilder.Message`
+#### <a id="messagebuilder-message"></a>MessageBuilder.Message
 
 Message returns the currently composed message without applying mailer defaults.
 
@@ -205,7 +205,7 @@ fmt.Println(msg.Subject)
 // Welcome
 ```
 
-#### <a id="messagebuilder-replyto"></a>`MessageBuilder.ReplyTo`
+#### <a id="messagebuilder-replyto"></a>MessageBuilder.ReplyTo
 
 ReplyTo appends one reply-to recipient.
 
@@ -222,7 +222,7 @@ fmt.Println(msg.ReplyTo[0].Email)
 // support@example.com
 ```
 
-#### <a id="messagebuilder-to"></a>`MessageBuilder.To`
+#### <a id="messagebuilder-to"></a>MessageBuilder.To
 
 To appends one primary recipient.
 
@@ -240,7 +240,7 @@ fmt.Println(len(msg.To))
 
 ### Construction
 
-#### <a id="new"></a>`New`
+#### <a id="new"></a>New
 
 New creates a Mailer backed by the provided driver.
 
@@ -255,7 +255,7 @@ fmt.Println(mailer != nil)
 
 ### Content
 
-#### <a id="messagebuilder-attach"></a>`MessageBuilder.Attach`
+#### <a id="messagebuilder-attach"></a>MessageBuilder.Attach
 
 Attach appends one in-memory attachment.
 
@@ -272,7 +272,7 @@ fmt.Println(msg.Attachments[0].Filename)
 // report.txt
 ```
 
-#### <a id="messagebuilder-attachfile"></a>`MessageBuilder.AttachFile`
+#### <a id="messagebuilder-attachfile"></a>MessageBuilder.AttachFile
 
 AttachFile loads one attachment from disk and appends it to the message.
 
@@ -291,7 +291,7 @@ fmt.Println(msg.Attachments[0].Filename)
 // report.txt
 ```
 
-#### <a id="messagebuilder-html"></a>`MessageBuilder.HTML`
+#### <a id="messagebuilder-html"></a>MessageBuilder.HTML
 
 HTML sets the HTML body.
 
@@ -307,7 +307,7 @@ fmt.Println(msg.HTML)
 // <p>hello world</p>
 ```
 
-#### <a id="messagebuilder-header"></a>`MessageBuilder.Header`
+#### <a id="messagebuilder-header"></a>MessageBuilder.Header
 
 Header sets or replaces one message header.
 
@@ -326,7 +326,7 @@ fmt.Println(message.Headers["X-Request-ID"])
 // req_123
 ```
 
-#### <a id="messagebuilder-metadata"></a>`MessageBuilder.Metadata`
+#### <a id="messagebuilder-metadata"></a>MessageBuilder.Metadata
 
 Metadata sets one provider-facing metadata key/value pair.
 
@@ -343,7 +343,7 @@ fmt.Println(msg.Metadata["tenant_id"])
 // tenant_123
 ```
 
-#### <a id="messagebuilder-subject"></a>`MessageBuilder.Subject`
+#### <a id="messagebuilder-subject"></a>MessageBuilder.Subject
 
 Subject sets the message subject.
 
@@ -359,7 +359,7 @@ fmt.Println(msg.Subject)
 // Welcome
 ```
 
-#### <a id="messagebuilder-tag"></a>`MessageBuilder.Tag`
+#### <a id="messagebuilder-tag"></a>MessageBuilder.Tag
 
 Tag appends one provider-facing message tag.
 
@@ -376,7 +376,7 @@ fmt.Println(msg.Tags[0])
 // welcome
 ```
 
-#### <a id="messagebuilder-text"></a>`MessageBuilder.Text`
+#### <a id="messagebuilder-text"></a>MessageBuilder.Text
 
 Text sets the plain text body.
 
@@ -394,7 +394,7 @@ fmt.Println(msg.Text)
 
 ### Defaults
 
-#### <a id="withdefaultfrom"></a>`WithDefaultFrom`
+#### <a id="withdefaultfrom"></a>WithDefaultFrom
 
 WithDefaultFrom configures the default from recipient applied when a message omits one.
 
@@ -409,7 +409,7 @@ fmt.Println(mailer != nil)
 // true
 ```
 
-#### <a id="withdefaultheader"></a>`WithDefaultHeader`
+#### <a id="withdefaultheader"></a>WithDefaultHeader
 
 WithDefaultHeader configures a header applied when a message omits that header key.
 
@@ -428,7 +428,7 @@ fmt.Println(msg.Headers["X-App"])
 // goforj
 ```
 
-#### <a id="withdefaultmetadata"></a>`WithDefaultMetadata`
+#### <a id="withdefaultmetadata"></a>WithDefaultMetadata
 
 WithDefaultMetadata configures metadata applied when a message omits that metadata key.
 
@@ -447,7 +447,7 @@ fmt.Println(msg.Metadata["tenant_id"])
 // tenant_123
 ```
 
-#### <a id="withdefaultreplyto"></a>`WithDefaultReplyTo`
+#### <a id="withdefaultreplyto"></a>WithDefaultReplyTo
 
 WithDefaultReplyTo configures the default reply-to recipients applied when a message omits them.
 
@@ -467,7 +467,7 @@ fmt.Println(msg.ReplyTo[0].Email)
 // support@example.com
 ```
 
-#### <a id="withdefaulttag"></a>`WithDefaultTag`
+#### <a id="withdefaulttag"></a>WithDefaultTag
 
 WithDefaultTag configures a tag prepended to every message sent by the mailer.
 
@@ -488,7 +488,7 @@ fmt.Println(msg.Tags[0])
 
 ### Delivery
 
-#### <a id="mailer-send"></a>`Mailer.Send`
+#### <a id="mailer-send"></a>Mailer.Send
 
 Send validates the message, applies defaults, and delegates delivery to the driver.
 
@@ -505,7 +505,7 @@ fmt.Println(err == nil)
 // true
 ```
 
-#### <a id="messagebuilder-build"></a>`MessageBuilder.Build`
+#### <a id="messagebuilder-build"></a>MessageBuilder.Build
 
 Build applies defaults, validates, and returns the composed message without sending it.
 
@@ -524,7 +524,7 @@ fmt.Println(msg.From.Email)
 // no-reply@example.com
 ```
 
-#### <a id="messagebuilder-send"></a>`MessageBuilder.Send`
+#### <a id="messagebuilder-send"></a>MessageBuilder.Send
 
 Send delegates the composed message to the bound mailer.
 
@@ -544,7 +544,7 @@ fmt.Println(fake.SentCount())
 
 ### Logging
 
-#### <a id="maillog-driver-send"></a>`maillog.Driver.Send`
+#### <a id="maillog-driver-send"></a>maillog.Driver.Send
 
 Send writes one JSON log record for the message.
 
@@ -561,7 +561,7 @@ fmt.Println(strings.Contains(out.String(), "\"subject\":\"Welcome\""))
 // true
 ```
 
-#### <a id="maillog-new"></a>`maillog.New`
+#### <a id="maillog-new"></a>maillog.New
 
 New creates a log mail driver that writes one JSON record per sent message.
 
@@ -580,7 +580,7 @@ fmt.Println(strings.Contains(out.String(), "\"subject\":\"Welcome\""))
 // true
 ```
 
-#### <a id="maillog-withbodies"></a>`maillog.WithBodies`
+#### <a id="maillog-withbodies"></a>maillog.WithBodies
 
 WithBodies controls whether HTML and text bodies are included in log output.
 
@@ -599,7 +599,7 @@ fmt.Println(strings.Contains(out.String(), "\"text\":\"hello world\""))
 // true
 ```
 
-#### <a id="maillog-withnow"></a>`maillog.WithNow`
+#### <a id="maillog-withnow"></a>maillog.WithNow
 
 WithNow overrides the timestamp source used by log entries.
 
@@ -622,7 +622,7 @@ fmt.Println(strings.Contains(out.String(), "2026-04-19T00:00:00Z"))
 
 ### Mailgun
 
-#### <a id="mailmailgun-driver-send"></a>`mailmailgun.Driver.Send`
+#### <a id="mailmailgun-driver-send"></a>mailmailgun.Driver.Send
 
 Send validates and transmits one message through Mailgun.
 
@@ -644,7 +644,7 @@ fmt.Println(err == nil)
 // false
 ```
 
-#### <a id="mailmailgun-new"></a>`mailmailgun.New`
+#### <a id="mailmailgun-new"></a>mailmailgun.New
 
 New creates a Mailgun mail driver from the given config.
 
@@ -661,7 +661,7 @@ fmt.Println(driver != nil)
 
 ### Message Model
 
-#### <a id="attachmentfrombytes"></a>`AttachmentFromBytes`
+#### <a id="attachmentfrombytes"></a>AttachmentFromBytes
 
 AttachmentFromBytes creates one attachment from in-memory content.
 
@@ -673,7 +673,7 @@ fmt.Println(attachment.Filename)
 // report.txt
 ```
 
-#### <a id="attachmentfrompath"></a>`AttachmentFromPath`
+#### <a id="attachmentfrompath"></a>AttachmentFromPath
 
 AttachmentFromPath loads one attachment from a local file path.
 
@@ -687,7 +687,7 @@ fmt.Println(attachment.Filename)
 // report.txt
 ```
 
-#### <a id="message-clone"></a>`Message.Clone`
+#### <a id="message-clone"></a>Message.Clone
 
 Clone returns a copy of the message safe for reuse in tests and builders.
 
@@ -705,7 +705,7 @@ fmt.Println(original.Subject)
 // Welcome
 ```
 
-#### <a id="message-validate"></a>`Message.Validate`
+#### <a id="message-validate"></a>Message.Validate
 
 Validate checks that the message has valid recipients, subject, body, and headers.
 
@@ -724,7 +724,7 @@ fmt.Println(err == nil)
 
 ### Postmark
 
-#### <a id="mailpostmark-driver-send"></a>`mailpostmark.Driver.Send`
+#### <a id="mailpostmark-driver-send"></a>mailpostmark.Driver.Send
 
 Send validates and transmits one message through Postmark.
 
@@ -745,7 +745,7 @@ fmt.Println(err == nil)
 // false
 ```
 
-#### <a id="mailpostmark-new"></a>`mailpostmark.New`
+#### <a id="mailpostmark-new"></a>mailpostmark.New
 
 New creates a Postmark mail driver from the given config.
 
@@ -761,7 +761,7 @@ fmt.Println(driver != nil)
 
 ### Resend
 
-#### <a id="mailresend-driver-send"></a>`mailresend.Driver.Send`
+#### <a id="mailresend-driver-send"></a>mailresend.Driver.Send
 
 Send validates and transmits one message through Resend.
 
@@ -782,7 +782,7 @@ fmt.Println(err == nil)
 // false
 ```
 
-#### <a id="mailresend-new"></a>`mailresend.New`
+#### <a id="mailresend-new"></a>mailresend.New
 
 New creates a Resend mail driver from the given config.
 
@@ -798,7 +798,7 @@ fmt.Println(driver != nil)
 
 ### SES
 
-#### <a id="mailses-driver-send"></a>`mailses.Driver.Send`
+#### <a id="mailses-driver-send"></a>mailses.Driver.Send
 
 Send validates and transmits one message through Amazon SES.
 
@@ -821,7 +821,7 @@ fmt.Println(err == nil)
 // false
 ```
 
-#### <a id="mailses-new"></a>`mailses.New`
+#### <a id="mailses-new"></a>mailses.New
 
 New creates an Amazon SES mail driver from the given config.
 
@@ -839,7 +839,7 @@ fmt.Println(driver != nil)
 
 ### SMTP
 
-#### <a id="mailsmtp-driver-send"></a>`mailsmtp.Driver.Send`
+#### <a id="mailsmtp-driver-send"></a>mailsmtp.Driver.Send
 
 Send validates and transmits one message over SMTP.
 
@@ -860,7 +860,7 @@ fmt.Println(err == nil)
 // false
 ```
 
-#### <a id="mailsmtp-new"></a>`mailsmtp.New`
+#### <a id="mailsmtp-new"></a>mailsmtp.New
 
 New creates an SMTP mail driver from the given config.
 
@@ -888,7 +888,7 @@ fmt.Println(driver != nil)
 // true
 ```
 
-#### <a id="mailsmtp-render"></a>`mailsmtp.Render`
+#### <a id="mailsmtp-render"></a>mailsmtp.Render
 
 Render turns one message into an RFC 822 style SMTP payload.
 
@@ -907,7 +907,7 @@ fmt.Println(strings.Contains(string(raw), "Subject: Welcome"))
 
 ### SendGrid
 
-#### <a id="mailsendgrid-driver-send"></a>`mailsendgrid.Driver.Send`
+#### <a id="mailsendgrid-driver-send"></a>mailsendgrid.Driver.Send
 
 Send validates and transmits one message through SendGrid.
 
@@ -928,7 +928,7 @@ fmt.Println(err == nil)
 // false
 ```
 
-#### <a id="mailsendgrid-new"></a>`mailsendgrid.New`
+#### <a id="mailsendgrid-new"></a>mailsendgrid.New
 
 New creates a SendGrid mail driver from the given config.
 
@@ -944,7 +944,7 @@ fmt.Println(driver != nil)
 
 ### Testing
 
-#### <a id="mailfake-driver-last"></a>`mailfake.Driver.Last`
+#### <a id="mailfake-driver-last"></a>mailfake.Driver.Last
 
 Last returns the last recorded message when one exists.
 
@@ -963,7 +963,7 @@ fmt.Println(last.Subject)
 // Welcome
 ```
 
-#### <a id="mailfake-driver-messages"></a>`mailfake.Driver.Messages`
+#### <a id="mailfake-driver-messages"></a>mailfake.Driver.Messages
 
 Messages returns a copy of every recorded message.
 
@@ -981,7 +981,7 @@ fmt.Println(len(fake.Messages()))
 // 1
 ```
 
-#### <a id="mailfake-driver-reset"></a>`mailfake.Driver.Reset`
+#### <a id="mailfake-driver-reset"></a>mailfake.Driver.Reset
 
 Reset clears recorded messages and any configured send error.
 
@@ -999,7 +999,7 @@ fmt.Println(fake.SentCount())
 // 0
 ```
 
-#### <a id="mailfake-driver-send"></a>`mailfake.Driver.Send`
+#### <a id="mailfake-driver-send"></a>mailfake.Driver.Send
 
 Send records the message and returns the configured error when set.
 
@@ -1016,7 +1016,7 @@ fmt.Println(fake.SentCount())
 // 1
 ```
 
-#### <a id="mailfake-driver-sentcount"></a>`mailfake.Driver.SentCount`
+#### <a id="mailfake-driver-sentcount"></a>mailfake.Driver.SentCount
 
 SentCount reports the number of recorded messages.
 
@@ -1033,7 +1033,7 @@ fmt.Println(fake.SentCount())
 // 1
 ```
 
-#### <a id="mailfake-driver-seterror"></a>`mailfake.Driver.SetError`
+#### <a id="mailfake-driver-seterror"></a>mailfake.Driver.SetError
 
 SetError configures the error returned by future sends.
 
@@ -1051,7 +1051,7 @@ fmt.Println(err != nil)
 // true
 ```
 
-#### <a id="mailfake-new"></a>`mailfake.New`
+#### <a id="mailfake-new"></a>mailfake.New
 
 New creates an in-memory fake mail driver for tests.
 

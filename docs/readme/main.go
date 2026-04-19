@@ -357,7 +357,7 @@ func renderAPI(funcs []*FuncDoc) string {
 		buf.WriteString("### " + group + "\n\n")
 
 		for _, fn := range items {
-			buf.WriteString(fmt.Sprintf("#### <a id=\"%s\"></a>`%s`\n\n", fn.Anchor, fn.DisplayName))
+			buf.WriteString(fmt.Sprintf("#### <a id=\"%s\"></a>%s\n\n", fn.Anchor, fn.DisplayName))
 			if fn.Description != "" {
 				buf.WriteString(fn.Description + "\n\n")
 			}
