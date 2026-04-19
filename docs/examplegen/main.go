@@ -49,6 +49,7 @@ func run() error {
 	}{
 		{dir: root, importPath: modPath},
 		{dir: filepath.Join(root, "mailfake"), importPath: modPath + "/mailfake", slugPrefix: "mailfake"},
+		{dir: filepath.Join(root, "mailmailgun"), importPath: modPath + "/mailmailgun", slugPrefix: "mailmailgun"},
 		{dir: filepath.Join(root, "maillog"), importPath: modPath + "/maillog", slugPrefix: "maillog"},
 		{dir: filepath.Join(root, "mailpostmark"), importPath: modPath + "/mailpostmark", slugPrefix: "mailpostmark"},
 		{dir: filepath.Join(root, "mailresend"), importPath: modPath + "/mailresend", slugPrefix: "mailresend"},
@@ -341,6 +342,9 @@ func inferImports(code, importPath string) []string {
 	if strings.Contains(code, "mailfake.") {
 		addSubpackageImport(importSet, importPath, "mailfake")
 	}
+	if strings.Contains(code, "mailmailgun.") {
+		addSubpackageImport(importSet, importPath, "mailmailgun")
+	}
 	if strings.Contains(code, "maillog.") {
 		addSubpackageImport(importSet, importPath, "maillog")
 	}
@@ -371,7 +375,7 @@ func addSubpackageImport(importSet map[string]bool, importPath, subpackage strin
 }
 
 func rootModuleImport(importPath string) string {
-	for _, suffix := range []string{"/mailfake", "/maillog", "/mailpostmark", "/mailresend", "/mailsmtp"} {
+	for _, suffix := range []string{"/mailfake", "/mailmailgun", "/maillog", "/mailpostmark", "/mailresend", "/mailsmtp"} {
 		if strings.HasSuffix(importPath, suffix) {
 			return strings.TrimSuffix(importPath, suffix)
 		}

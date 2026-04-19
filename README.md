@@ -11,7 +11,7 @@ go get github.com/goforj/mail
 ## Test Counts
 
 <!-- test-count:embed:start -->
-    <img src="https://img.shields.io/badge/unit_tests-19-brightgreen" alt="Unit tests (executed count)">
+    <img src="https://img.shields.io/badge/unit_tests-23-brightgreen" alt="Unit tests (executed count)">
     <img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">
 <!-- test-count:embed:end -->
 
@@ -68,6 +68,7 @@ func main() {
 | **Defaults** | [WithDefaultFrom](#withdefaultfrom) [WithDefaultHeader](#withdefaultheader) [WithDefaultMetadata](#withdefaultmetadata) [WithDefaultReplyTo](#withdefaultreplyto) [WithDefaultTag](#withdefaulttag) |
 | **Delivery** | [Mailer.Send](#mailer-send) [MessageBuilder.Build](#messagebuilder-build) [MessageBuilder.Send](#messagebuilder-send) |
 | **Logging** | [maillog.Driver.Send](#maillog-driver-send) [maillog.New](#maillog-new) [maillog.WithBodies](#maillog-withbodies) [maillog.WithNow](#maillog-withnow) |
+| **Mailgun** | [mailmailgun.Driver.Send](#mailmailgun-driver-send) [mailmailgun.New](#mailmailgun-new) |
 | **Message Model** | [Message.Clone](#message-clone) [Message.Validate](#message-validate) |
 | **Postmark** | [mailpostmark.Driver.Send](#mailpostmark-driver-send) [mailpostmark.New](#mailpostmark-new) |
 | **Resend** | [mailresend.Driver.Send](#mailresend-driver-send) [mailresend.New](#mailresend-new) |
@@ -542,6 +543,45 @@ _ = mail.New(mailer).Send(context.Background(), mail.Message{
 	Text:    "hello world",
 })
 fmt.Println(strings.Contains(out.String(), "2026-04-19T00:00:00Z"))
+// true
+```
+
+### Mailgun
+
+#### <a id="mailmailgun-driver-send"></a>`mailmailgun.Driver.Send`
+
+Send validates and transmits one message through Mailgun.
+
+send one message through Mailgun:
+
+```go
+driver, _ := mailmailgun.New(mailmailgun.Config{
+	Domain:   "mg.example.com",
+	APIKey:   "key-test",
+	Endpoint: "http://127.0.0.1:1",
+})
+err := driver.Send(context.Background(), mail.Message{
+	From:    &mail.Recipient{Email: "no-reply@example.com"},
+	To:      []mail.Recipient{{Email: "alice@example.com"}},
+	Subject: "Welcome",
+	Text:    "hello world",
+})
+fmt.Println(err == nil)
+// false
+```
+
+#### <a id="mailmailgun-new"></a>`mailmailgun.New`
+
+New creates a Mailgun mail driver from the given config.
+
+configure a Mailgun mail driver:
+
+```go
+driver, _ := mailmailgun.New(mailmailgun.Config{
+	Domain: "mg.example.com",
+	APIKey: "key-test",
+})
+fmt.Println(driver != nil)
 // true
 ```
 
