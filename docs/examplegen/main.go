@@ -82,10 +82,14 @@ func ensureExamplesModule(examplesDir, modPath string) error {
 
 go 1.26.1
 
-require %s v0.0.0
+require (
+	%s v0.0.0
+	%s/mailses v0.0.0
+)
 
 replace %s => ..
-`, modPath, modPath, modPath)
+replace %s/mailses => ../mailses
+`, modPath, modPath, modPath, modPath, modPath)
 
 	return os.WriteFile(filepath.Join(examplesDir, "go.mod"), []byte(content), 0o644)
 }
