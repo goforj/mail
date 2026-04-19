@@ -98,8 +98,8 @@ func countRunEvents(root string) (int, error) {
 
 func renderBadges(unitCount int) string {
 	return strings.Join([]string{
-		fmt.Sprintf(`    <img src="https://img.shields.io/badge/unit_tests-%d-brightgreen" alt="Unit tests (executed count)">`, unitCount),
-		`    <img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">`,
+		fmt.Sprintf(`<img src="https://img.shields.io/badge/unit_tests-%d-brightgreen" alt="Unit tests (executed count)">`, unitCount),
+		`<img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">`,
 	}, "\n")
 }
 
