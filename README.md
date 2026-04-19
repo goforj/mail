@@ -8,7 +8,7 @@
 
 <p align="center">
 <!-- test-count:embed:start -->
-<img src="https://img.shields.io/badge/unit_tests-27-brightgreen" alt="Unit tests (executed count)">
+<img src="https://img.shields.io/badge/unit_tests-29-brightgreen" alt="Unit tests (executed count)">
 <img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">
 <!-- test-count:embed:end -->
 </p>
@@ -78,6 +78,19 @@ Notes:
 - `587` is the usual STARTTLS port. Use `465` with `ForceTLS: true` if you explicitly want implicit TLS.
 - Gmail is fine for personal or low-volume transactional sending, but a dedicated provider like Resend, Postmark, Mailgun, or SendGrid is usually a better production default.
 
+## Driver Capabilities
+
+| Driver | HTML/Text | Headers | Tags | Metadata | Attachments | Notes |
+|:--|:--:|:--:|:--:|:--:|:--:|:--|
+| `mailsmtp` | ✓ | ✓ | x | x | ✓ | Covers Gmail and other SMTP providers. |
+| `mailresend` | ✓ | ✓ | ✓ | ✓ | ✓ | API-backed transactional delivery. |
+| `mailpostmark` | ✓ | ✓ | ✓ | ✓ | ✓ | First tag is native; additional tags are mapped into metadata. |
+| `mailmailgun` | ✓ | ✓ | ✓ | ✓ | ✓ | Uses Mailgun multipart message uploads. |
+| `mailsendgrid` | ✓ | ✓ | ✓ | ✓ | ✓ | Maps tags to categories and metadata to custom args. |
+| `mailses` | ✓ | ✓ | ✓ | ✓ | ✓ | Uses SES raw email with the same MIME rendering as SMTP. |
+| `maillog` | ✓ | ✓ | x | x | ✓ | Local/dev inspection only; logs the composed message. |
+| `mailfake` | ✓ | ✓ | ✓ | ✓ | ✓ | Test helper; captures the full portable message. |
+
 ## API
 
 <!-- api:embed:start -->
@@ -87,12 +100,12 @@ Notes:
 |------:|:-----------|
 | **Composition** | [Mailer.Message](#mailer-message) [MessageBuilder.Bcc](#messagebuilder-bcc) [MessageBuilder.Cc](#messagebuilder-cc) [MessageBuilder.From](#messagebuilder-from) [MessageBuilder.Message](#messagebuilder-message) [MessageBuilder.ReplyTo](#messagebuilder-replyto) [MessageBuilder.To](#messagebuilder-to) |
 | **Construction** | [New](#new) |
-| **Content** | [MessageBuilder.HTML](#messagebuilder-html) [MessageBuilder.Header](#messagebuilder-header) [MessageBuilder.Metadata](#messagebuilder-metadata) [MessageBuilder.Subject](#messagebuilder-subject) [MessageBuilder.Tag](#messagebuilder-tag) [MessageBuilder.Text](#messagebuilder-text) |
+| **Content** | [MessageBuilder.Attach](#messagebuilder-attach) [MessageBuilder.AttachFile](#messagebuilder-attachfile) [MessageBuilder.HTML](#messagebuilder-html) [MessageBuilder.Header](#messagebuilder-header) [MessageBuilder.Metadata](#messagebuilder-metadata) [MessageBuilder.Subject](#messagebuilder-subject) [MessageBuilder.Tag](#messagebuilder-tag) [MessageBuilder.Text](#messagebuilder-text) |
 | **Defaults** | [WithDefaultFrom](#withdefaultfrom) [WithDefaultHeader](#withdefaultheader) [WithDefaultMetadata](#withdefaultmetadata) [WithDefaultReplyTo](#withdefaultreplyto) [WithDefaultTag](#withdefaulttag) |
 | **Delivery** | [Mailer.Send](#mailer-send) [MessageBuilder.Build](#messagebuilder-build) [MessageBuilder.Send](#messagebuilder-send) |
 | **Logging** | [maillog.Driver.Send](#maillog-driver-send) [maillog.New](#maillog-new) [maillog.WithBodies](#maillog-withbodies) [maillog.WithNow](#maillog-withnow) |
 | **Mailgun** | [mailmailgun.Driver.Send](#mailmailgun-driver-send) [mailmailgun.New](#mailmailgun-new) |
-| **Message Model** | [Message.Clone](#message-clone) [Message.Validate](#message-validate) |
+| **Message Model** | [AttachmentFromBytes](#attachmentfrombytes) [AttachmentFromPath](#attachmentfrompath) [Message.Clone](#message-clone) [Message.Validate](#message-validate) |
 | **Postmark** | [mailpostmark.Driver.Send](#mailpostmark-driver-send) [mailpostmark.New](#mailpostmark-new) |
 | **Resend** | [mailresend.Driver.Send](#mailresend-driver-send) [mailresend.New](#mailresend-new) |
 | **SES** | [mailses.Driver.Send](#mailses-driver-send) [mailses.New](#mailses-new) |
@@ -241,6 +254,42 @@ fmt.Println(mailer != nil)
 ```
 
 ### Content
+
+#### <a id="messagebuilder-attach"></a>`MessageBuilder.Attach`
+
+Attach appends one in-memory attachment.
+
+attach one text file from bytes:
+
+```go
+msg := mail.New(mailfake.New()).Message().
+	To("alice@example.com", "Alice").
+	Subject("Welcome").
+	Text("hello world").
+	Attach("report.txt", "text/plain", []byte("hello world")).
+	Message()
+fmt.Println(msg.Attachments[0].Filename)
+// report.txt
+```
+
+#### <a id="messagebuilder-attachfile"></a>`MessageBuilder.AttachFile`
+
+AttachFile loads one attachment from disk and appends it to the message.
+
+attach one file from disk:
+
+```go
+_ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
+defer os.Remove("report.txt")
+msg, _ := mail.New(mailfake.New()).Message().
+	To("alice@example.com", "Alice").
+	Subject("Welcome").
+	Text("hello world").
+	AttachFile("report.txt").
+	Build()
+fmt.Println(msg.Attachments[0].Filename)
+// report.txt
+```
 
 #### <a id="messagebuilder-html"></a>`MessageBuilder.HTML`
 
@@ -611,6 +660,32 @@ fmt.Println(driver != nil)
 ```
 
 ### Message Model
+
+#### <a id="attachmentfrombytes"></a>`AttachmentFromBytes`
+
+AttachmentFromBytes creates one attachment from in-memory content.
+
+create an attachment from bytes:
+
+```go
+attachment := mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello world"))
+fmt.Println(attachment.Filename)
+// report.txt
+```
+
+#### <a id="attachmentfrompath"></a>`AttachmentFromPath`
+
+AttachmentFromPath loads one attachment from a local file path.
+
+load an attachment from disk:
+
+```go
+_ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
+defer os.Remove("report.txt")
+attachment, _ := mail.AttachmentFromPath("report.txt")
+fmt.Println(attachment.Filename)
+// report.txt
+```
 
 #### <a id="message-clone"></a>`Message.Clone`
 
