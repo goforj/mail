@@ -72,6 +72,7 @@ func main() {
 | **Message Model** | [Message.Clone](#message-clone) [Message.Validate](#message-validate) |
 | **Postmark** | [mailpostmark.Driver.Send](#mailpostmark-driver-send) [mailpostmark.New](#mailpostmark-new) |
 | **Resend** | [mailresend.Driver.Send](#mailresend-driver-send) [mailresend.New](#mailresend-new) |
+| **SES** | [mailses.Driver.Send](#mailses-driver-send) [mailses.New](#mailses-new) |
 | **SMTP** | [mailsmtp.Driver.Send](#mailsmtp-driver-send) [mailsmtp.New](#mailsmtp-new) [mailsmtp.Render](#mailsmtp-render) |
 | **Testing** | [mailfake.Driver.Last](#mailfake-driver-last) [mailfake.Driver.Messages](#mailfake-driver-messages) [mailfake.Driver.Reset](#mailfake-driver-reset) [mailfake.Driver.Send](#mailfake-driver-send) [mailfake.Driver.SentCount](#mailfake-driver-sentcount) [mailfake.Driver.SetError](#mailfake-driver-seterror) [mailfake.New](#mailfake-new) |
 
@@ -691,6 +692,47 @@ configure a Resend mail driver:
 ```go
 driver, _ := mailresend.New(mailresend.Config{
 	APIKey: "re_test_key",
+})
+fmt.Println(driver != nil)
+// true
+```
+
+### SES
+
+#### <a id="mailses-driver-send"></a>`mailses.Driver.Send`
+
+Send validates and transmits one message through Amazon SES.
+
+send one message through Amazon SES:
+
+```go
+driver, _ := mailses.New(mailses.Config{
+	Region:          "us-east-1",
+	AccessKeyID:     "test",
+	SecretAccessKey: "test",
+	Endpoint:        "http://127.0.0.1:1",
+})
+err := driver.Send(context.Background(), mail.Message{
+	From:    &mail.Recipient{Email: "no-reply@example.com"},
+	To:      []mail.Recipient{{Email: "alice@example.com"}},
+	Subject: "Welcome",
+	Text:    "hello world",
+})
+fmt.Println(err == nil)
+// false
+```
+
+#### <a id="mailses-new"></a>`mailses.New`
+
+New creates an Amazon SES mail driver from the given config.
+
+configure an Amazon SES mail driver:
+
+```go
+driver, _ := mailses.New(mailses.Config{
+	Region:          "us-east-1",
+	AccessKeyID:     "test",
+	SecretAccessKey: "test",
 })
 fmt.Println(driver != nil)
 // true
