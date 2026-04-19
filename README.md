@@ -59,6 +59,25 @@ func main() {
 }
 ```
 
+## Gmail via SMTP
+
+Gmail does not need its own driver. Use `mailsmtp` with Gmail's SMTP host and an app password:
+
+```go
+driver, err := mailsmtp.New(mailsmtp.Config{
+	Host:     "smtp.gmail.com",
+	Port:     587,
+	Username: "you@gmail.com",
+	Password: "gmail-app-password",
+})
+```
+
+Notes:
+
+- Use a Google app password, not your normal account password.
+- `587` is the usual STARTTLS port. Use `465` with `ForceTLS: true` if you explicitly want implicit TLS.
+- Gmail is fine for personal or low-volume transactional sending, but a dedicated provider like Resend, Postmark, Mailgun, or SendGrid is usually a better production default.
+
 ## API
 
 <!-- api:embed:start -->
@@ -776,6 +795,19 @@ configure an SMTP mail driver:
 driver, _ := mailsmtp.New(mailsmtp.Config{
 	Host: "smtp.example.com",
 	Port: 587,
+})
+fmt.Println(driver != nil)
+// true
+```
+
+configure Gmail SMTP with an app password:
+
+```go
+driver, _ := mailsmtp.New(mailsmtp.Config{
+	Host:     "smtp.gmail.com",
+	Port:     587,
+	Username: "you@gmail.com",
+	Password: "gmail-app-password",
 })
 fmt.Println(driver != nil)
 // true

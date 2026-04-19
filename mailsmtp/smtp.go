@@ -49,6 +49,17 @@ type Driver struct {
 //	})
 //	fmt.Println(driver != nil)
 //	// true
+//
+// Example: configure Gmail SMTP with an app password
+//
+//	driver, _ := mailsmtp.New(mailsmtp.Config{
+//		Host:     "smtp.gmail.com",
+//		Port:     587,
+//		Username: "you@gmail.com",
+//		Password: "gmail-app-password",
+//	})
+//	fmt.Println(driver != nil)
+//	// true
 func New(config Config) (*Driver, error) {
 	host := strings.TrimSpace(config.Host)
 	if host == "" {
