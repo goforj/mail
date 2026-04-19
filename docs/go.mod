@@ -1,7 +1,5 @@
 module github.com/goforj/mail/docs
 
-go 1.26.1
-
-require github.com/goforj/mail v0.0.0
+go 1.25.0
 
 replace github.com/goforj/mail => ..
