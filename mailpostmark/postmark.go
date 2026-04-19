@@ -82,7 +82,7 @@ func (e *apiError) Error() string {
 // New creates a Postmark mail driver from the given config.
 // @group Postmark
 //
-// Example: configure a Postmark mail driver
+// Example: postmark
 //
 //	driver, _ := mailpostmark.New(mailpostmark.Config{
 //		ServerToken: "pm_test_token",
@@ -113,7 +113,7 @@ func New(config Config) (*Driver, error) {
 // Send validates and transmits one message through Postmark.
 // @group Postmark
 //
-// Example: send one message through Postmark
+// Example: send
 //
 //	driver, _ := mailpostmark.New(mailpostmark.Config{
 //		ServerToken: "pm_test_token",

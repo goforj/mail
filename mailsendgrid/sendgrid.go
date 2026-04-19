@@ -83,7 +83,7 @@ func (e *apiError) Error() string {
 // New creates a SendGrid mail driver from the given config.
 // @group SendGrid
 //
-// Example: configure a SendGrid mail driver
+// Example: sendgrid
 //
 //	driver, _ := mailsendgrid.New(mailsendgrid.Config{
 //		APIKey: "SG.test_key",
@@ -113,7 +113,7 @@ func New(config Config) (*Driver, error) {
 // Send validates and transmits one message through SendGrid.
 // @group SendGrid
 //
-// Example: send one message through SendGrid
+// Example: send
 //
 //	driver, _ := mailsendgrid.New(mailsendgrid.Config{
 //		APIKey:   "SG.test_key",

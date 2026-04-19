@@ -43,7 +43,7 @@ type Driver struct {
 // New creates an SMTP mail driver from the given config.
 // @group SMTP
 //
-// Example: configure an SMTP mail driver
+// Example: smtp
 //
 //	driver, _ := mailsmtp.New(mailsmtp.Config{
 //		Host: "smtp.example.com",
@@ -52,7 +52,7 @@ type Driver struct {
 //	fmt.Println(driver != nil)
 //	// true
 //
-// Example: configure Gmail SMTP with an app password
+// Example: gmail
 //
 //	driver, _ := mailsmtp.New(mailsmtp.Config{
 //		Host:     "smtp.gmail.com",
@@ -84,7 +84,7 @@ func New(config Config) (*Driver, error) {
 // Send validates and transmits one message over SMTP.
 // @group SMTP
 //
-// Example: send one message over SMTP
+// Example: send
 //
 //	driver, _ := mailsmtp.New(mailsmtp.Config{
 //		Host: "smtp.example.com",
@@ -169,7 +169,7 @@ func (m *Driver) auth() smtp.Auth {
 // Render turns one message into an RFC 822 style SMTP payload.
 // @group SMTP
 //
-// Example: render a text message
+// Example: render
 //
 //	raw, _ := mailsmtp.Render(mail.Message{
 //		From:    &mail.Recipient{Email: "no-reply@example.com", Name: "Example"},

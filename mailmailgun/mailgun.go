@@ -54,7 +54,7 @@ func (e *apiError) Error() string {
 // New creates a Mailgun mail driver from the given config.
 // @group Mailgun
 //
-// Example: configure a Mailgun mail driver
+// Example: mailgun
 //
 //	driver, _ := mailmailgun.New(mailmailgun.Config{
 //		Domain: "mg.example.com",
@@ -90,7 +90,7 @@ func New(config Config) (*Driver, error) {
 // Send validates and transmits one message through Mailgun.
 // @group Mailgun
 //
-// Example: send one message through Mailgun
+// Example: send
 //
 //	driver, _ := mailmailgun.New(mailmailgun.Config{
 //		Domain:   "mg.example.com",

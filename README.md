@@ -124,8 +124,6 @@ _Generated from public API comments and examples._
 
 Message starts a new fluent message builder bound to this mailer.
 
-compose and send one message:
-
 ```go
 fake := mailfake.New()
 mailer := mail.New(fake, mail.WithDefaultFrom("no-reply@example.com", "Example"))
@@ -142,8 +140,6 @@ fmt.Println(fake.SentCount())
 
 Bcc appends one blind-carbon-copy recipient.
 
-add a bcc recipient:
-
 ```go
 msg, _ := mail.New(mailfake.New()).Message().
 	To("alice@example.com", "Alice").
@@ -158,8 +154,6 @@ fmt.Println(msg.Bcc[0].Email)
 #### <a id="messagebuilder-cc"></a>MessageBuilder.Cc
 
 Cc appends one carbon-copy recipient.
-
-add a cc recipient:
 
 ```go
 msg, _ := mail.New(mailfake.New()).Message().
@@ -176,8 +170,6 @@ fmt.Println(msg.Cc[0].Email)
 
 From sets the from recipient.
 
-override the from recipient for one message:
-
 ```go
 msg, _ := mail.New(mailfake.New()).Message().
 	From("team@example.com", "Example Team").
@@ -193,8 +185,6 @@ fmt.Println(msg.From.Email)
 
 Message returns the currently composed message without applying mailer defaults.
 
-inspect the in-progress message:
-
 ```go
 msg := mail.New(mailfake.New()).Message().
 	To("alice@example.com", "Alice").
@@ -208,8 +198,6 @@ fmt.Println(msg.Subject)
 #### <a id="messagebuilder-replyto"></a>MessageBuilder.ReplyTo
 
 ReplyTo appends one reply-to recipient.
-
-add a reply-to recipient:
 
 ```go
 msg, _ := mail.New(mailfake.New()).Message().
@@ -225,8 +213,6 @@ fmt.Println(msg.ReplyTo[0].Email)
 #### <a id="messagebuilder-to"></a>MessageBuilder.To
 
 To appends one primary recipient.
-
-add one primary recipient:
 
 ```go
 msg, _ := mail.New(mailfake.New()).Message().
@@ -244,8 +230,6 @@ fmt.Println(len(msg.To))
 
 New creates a Mailer backed by the provided driver.
 
-create a mailer with a default from address:
-
 ```go
 fake := mailfake.New()
 mailer := mail.New(fake, mail.WithDefaultFrom("no-reply@example.com", "Example"))
@@ -258,8 +242,6 @@ fmt.Println(mailer != nil)
 #### <a id="messagebuilder-attach"></a>MessageBuilder.Attach
 
 Attach appends one in-memory attachment.
-
-attach one text file from bytes:
 
 ```go
 msg := mail.New(mailfake.New()).Message().
@@ -275,8 +257,6 @@ fmt.Println(msg.Attachments[0].Filename)
 #### <a id="messagebuilder-attachfile"></a>MessageBuilder.AttachFile
 
 AttachFile loads one attachment from disk and appends it to the message.
-
-attach one file from disk:
 
 ```go
 _ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
@@ -295,8 +275,6 @@ fmt.Println(msg.Attachments[0].Filename)
 
 HTML sets the HTML body.
 
-set an html body:
-
 ```go
 msg := mail.New(mailfake.New()).Message().
 	To("alice@example.com", "Alice").
@@ -310,8 +288,6 @@ fmt.Println(msg.HTML)
 #### <a id="messagebuilder-header"></a>MessageBuilder.Header
 
 Header sets or replaces one message header.
-
-attach headers, tags, and metadata:
 
 ```go
 message, _ := mail.New(mailfake.New()).Message().
@@ -330,8 +306,6 @@ fmt.Println(message.Headers["X-Request-ID"])
 
 Metadata sets one provider-facing metadata key/value pair.
 
-add provider-facing metadata:
-
 ```go
 msg := mail.New(mailfake.New()).Message().
 	To("alice@example.com", "Alice").
@@ -347,8 +321,6 @@ fmt.Println(msg.Metadata["tenant_id"])
 
 Subject sets the message subject.
 
-set the subject line:
-
 ```go
 msg := mail.New(mailfake.New()).Message().
 	To("alice@example.com", "Alice").
@@ -362,8 +334,6 @@ fmt.Println(msg.Subject)
 #### <a id="messagebuilder-tag"></a>MessageBuilder.Tag
 
 Tag appends one provider-facing message tag.
-
-add a provider-facing tag:
 
 ```go
 msg := mail.New(mailfake.New()).Message().
@@ -379,8 +349,6 @@ fmt.Println(msg.Tags[0])
 #### <a id="messagebuilder-text"></a>MessageBuilder.Text
 
 Text sets the plain text body.
-
-set a text body:
 
 ```go
 msg := mail.New(mailfake.New()).Message().
@@ -398,8 +366,6 @@ fmt.Println(msg.Text)
 
 WithDefaultFrom configures the default from recipient applied when a message omits one.
 
-apply a default from address:
-
 ```go
 mailer := mail.New(
 	mailfake.New(),
@@ -412,8 +378,6 @@ fmt.Println(mailer != nil)
 #### <a id="withdefaultheader"></a>WithDefaultHeader
 
 WithDefaultHeader configures a header applied when a message omits that header key.
-
-apply a default header:
 
 ```go
 msg, _ := mail.New(
@@ -432,8 +396,6 @@ fmt.Println(msg.Headers["X-App"])
 
 WithDefaultMetadata configures metadata applied when a message omits that metadata key.
 
-apply default metadata:
-
 ```go
 msg, _ := mail.New(
 	mailfake.New(),
@@ -450,8 +412,6 @@ fmt.Println(msg.Metadata["tenant_id"])
 #### <a id="withdefaultreplyto"></a>WithDefaultReplyTo
 
 WithDefaultReplyTo configures the default reply-to recipients applied when a message omits them.
-
-apply a default reply-to recipient:
 
 ```go
 mailer := mail.New(
@@ -470,8 +430,6 @@ fmt.Println(msg.ReplyTo[0].Email)
 #### <a id="withdefaulttag"></a>WithDefaultTag
 
 WithDefaultTag configures a tag prepended to every message sent by the mailer.
-
-apply a default tag:
 
 ```go
 msg, _ := mail.New(
@@ -492,8 +450,6 @@ fmt.Println(msg.Tags[0])
 
 Send validates the message, applies defaults, and delegates delivery to the driver.
 
-send a prebuilt message:
-
 ```go
 mailer := mail.New(mailfake.New(), mail.WithDefaultFrom("no-reply@example.com", "Example"))
 err := mailer.Send(context.Background(), mail.Message{
@@ -508,8 +464,6 @@ fmt.Println(err == nil)
 #### <a id="messagebuilder-build"></a>MessageBuilder.Build
 
 Build applies defaults, validates, and returns the composed message without sending it.
-
-build without sending:
 
 ```go
 msg, _ := mail.New(
@@ -527,8 +481,6 @@ fmt.Println(msg.From.Email)
 #### <a id="messagebuilder-send"></a>MessageBuilder.Send
 
 Send delegates the composed message to the bound mailer.
-
-send through the bound mailer:
 
 ```go
 fake := mailfake.New()
@@ -548,8 +500,6 @@ fmt.Println(fake.SentCount())
 
 Send writes one JSON log record for the message.
 
-write one log entry directly:
-
 ```go
 var out bytes.Buffer
 _ = maillog.New(&out).Send(context.Background(), mail.Message{
@@ -564,8 +514,6 @@ fmt.Println(strings.Contains(out.String(), "\"subject\":\"Welcome\""))
 #### <a id="maillog-new"></a>maillog.New
 
 New creates a log mail driver that writes one JSON record per sent message.
-
-log one message to a buffer:
 
 ```go
 var out bytes.Buffer
@@ -584,8 +532,6 @@ fmt.Println(strings.Contains(out.String(), "\"subject\":\"Welcome\""))
 
 WithBodies controls whether HTML and text bodies are included in log output.
 
-include bodies in log output:
-
 ```go
 var out bytes.Buffer
 mailer := maillog.New(&out, maillog.WithBodies(true))
@@ -602,8 +548,6 @@ fmt.Println(strings.Contains(out.String(), "\"text\":\"hello world\""))
 #### <a id="maillog-withnow"></a>maillog.WithNow
 
 WithNow overrides the timestamp source used by log entries.
-
-control the logged timestamp:
 
 ```go
 var out bytes.Buffer
@@ -626,8 +570,6 @@ fmt.Println(strings.Contains(out.String(), "2026-04-19T00:00:00Z"))
 
 Send validates and transmits one message through Mailgun.
 
-send one message through Mailgun:
-
 ```go
 driver, _ := mailmailgun.New(mailmailgun.Config{
 	Domain:   "mg.example.com",
@@ -648,8 +590,6 @@ fmt.Println(err == nil)
 
 New creates a Mailgun mail driver from the given config.
 
-configure a Mailgun mail driver:
-
 ```go
 driver, _ := mailmailgun.New(mailmailgun.Config{
 	Domain: "mg.example.com",
@@ -665,8 +605,6 @@ fmt.Println(driver != nil)
 
 AttachmentFromBytes creates one attachment from in-memory content.
 
-create an attachment from bytes:
-
 ```go
 attachment := mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello world"))
 fmt.Println(attachment.Filename)
@@ -676,8 +614,6 @@ fmt.Println(attachment.Filename)
 #### <a id="attachmentfrompath"></a>AttachmentFromPath
 
 AttachmentFromPath loads one attachment from a local file path.
-
-load an attachment from disk:
 
 ```go
 _ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
@@ -690,8 +626,6 @@ fmt.Println(attachment.Filename)
 #### <a id="message-clone"></a>Message.Clone
 
 Clone returns a copy of the message safe for reuse in tests and builders.
-
-clone before mutating:
 
 ```go
 original := mail.Message{
@@ -709,8 +643,6 @@ fmt.Println(original.Subject)
 
 Validate checks that the message has valid recipients, subject, body, and headers.
 
-validate a complete message:
-
 ```go
 err := (mail.Message{
 	From:    &mail.Recipient{Email: "no-reply@example.com", Name: "Example"},
@@ -727,8 +659,6 @@ fmt.Println(err == nil)
 #### <a id="mailpostmark-driver-send"></a>mailpostmark.Driver.Send
 
 Send validates and transmits one message through Postmark.
-
-send one message through Postmark:
 
 ```go
 driver, _ := mailpostmark.New(mailpostmark.Config{
@@ -749,8 +679,6 @@ fmt.Println(err == nil)
 
 New creates a Postmark mail driver from the given config.
 
-configure a Postmark mail driver:
-
 ```go
 driver, _ := mailpostmark.New(mailpostmark.Config{
 	ServerToken: "pm_test_token",
@@ -764,8 +692,6 @@ fmt.Println(driver != nil)
 #### <a id="mailresend-driver-send"></a>mailresend.Driver.Send
 
 Send validates and transmits one message through Resend.
-
-send one message through Resend:
 
 ```go
 driver, _ := mailresend.New(mailresend.Config{
@@ -786,8 +712,6 @@ fmt.Println(err == nil)
 
 New creates a Resend mail driver from the given config.
 
-configure a Resend mail driver:
-
 ```go
 driver, _ := mailresend.New(mailresend.Config{
 	APIKey: "re_test_key",
@@ -801,8 +725,6 @@ fmt.Println(driver != nil)
 #### <a id="mailses-driver-send"></a>mailses.Driver.Send
 
 Send validates and transmits one message through Amazon SES.
-
-send one message through Amazon SES:
 
 ```go
 driver, _ := mailses.New(mailses.Config{
@@ -825,8 +747,6 @@ fmt.Println(err == nil)
 
 New creates an Amazon SES mail driver from the given config.
 
-configure an Amazon SES mail driver:
-
 ```go
 driver, _ := mailses.New(mailses.Config{
 	Region:          "us-east-1",
@@ -842,8 +762,6 @@ fmt.Println(driver != nil)
 #### <a id="mailsmtp-driver-send"></a>mailsmtp.Driver.Send
 
 Send validates and transmits one message over SMTP.
-
-send one message over SMTP:
 
 ```go
 driver, _ := mailsmtp.New(mailsmtp.Config{
@@ -864,8 +782,6 @@ fmt.Println(err == nil)
 
 New creates an SMTP mail driver from the given config.
 
-configure an SMTP mail driver:
-
 ```go
 driver, _ := mailsmtp.New(mailsmtp.Config{
 	Host: "smtp.example.com",
@@ -875,7 +791,7 @@ fmt.Println(driver != nil)
 // true
 ```
 
-configure Gmail SMTP with an app password:
+gmail:
 
 ```go
 driver, _ := mailsmtp.New(mailsmtp.Config{
@@ -891,8 +807,6 @@ fmt.Println(driver != nil)
 #### <a id="mailsmtp-render"></a>mailsmtp.Render
 
 Render turns one message into an RFC 822 style SMTP payload.
-
-render a text message:
 
 ```go
 raw, _ := mailsmtp.Render(mail.Message{
@@ -910,8 +824,6 @@ fmt.Println(strings.Contains(string(raw), "Subject: Welcome"))
 #### <a id="mailsendgrid-driver-send"></a>mailsendgrid.Driver.Send
 
 Send validates and transmits one message through SendGrid.
-
-send one message through SendGrid:
 
 ```go
 driver, _ := mailsendgrid.New(mailsendgrid.Config{
@@ -932,8 +844,6 @@ fmt.Println(err == nil)
 
 New creates a SendGrid mail driver from the given config.
 
-configure a SendGrid mail driver:
-
 ```go
 driver, _ := mailsendgrid.New(mailsendgrid.Config{
 	APIKey: "SG.test_key",
@@ -947,8 +857,6 @@ fmt.Println(driver != nil)
 #### <a id="mailfake-driver-last"></a>mailfake.Driver.Last
 
 Last returns the last recorded message when one exists.
-
-read the last recorded subject:
 
 ```go
 fake := mailfake.New()
@@ -967,8 +875,6 @@ fmt.Println(last.Subject)
 
 Messages returns a copy of every recorded message.
 
-inspect recorded messages:
-
 ```go
 fake := mailfake.New()
 _ = mail.New(fake).Send(context.Background(), mail.Message{
@@ -984,8 +890,6 @@ fmt.Println(len(fake.Messages()))
 #### <a id="mailfake-driver-reset"></a>mailfake.Driver.Reset
 
 Reset clears recorded messages and any configured send error.
-
-clear recorded state:
 
 ```go
 fake := mailfake.New()
@@ -1003,8 +907,6 @@ fmt.Println(fake.SentCount())
 
 Send records the message and returns the configured error when set.
 
-record a sent message directly:
-
 ```go
 fake := mailfake.New()
 _ = fake.Send(context.Background(), mail.Message{
@@ -1019,8 +921,6 @@ fmt.Println(fake.SentCount())
 #### <a id="mailfake-driver-sentcount"></a>mailfake.Driver.SentCount
 
 SentCount reports the number of recorded messages.
-
-count recorded messages:
 
 ```go
 fake := mailfake.New()
@@ -1037,8 +937,6 @@ fmt.Println(fake.SentCount())
 
 SetError configures the error returned by future sends.
 
-force sends to fail:
-
 ```go
 fake := mailfake.New()
 fake.SetError(errors.New("boom"))
@@ -1054,8 +952,6 @@ fmt.Println(err != nil)
 #### <a id="mailfake-new"></a>mailfake.New
 
 New creates an in-memory fake mail driver for tests.
-
-record one sent message:
 
 ```go
 fake := mailfake.New()

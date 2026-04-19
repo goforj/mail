@@ -77,7 +77,7 @@ func (e *apiError) Error() string {
 // New creates a Resend mail driver from the given config.
 // @group Resend
 //
-// Example: configure a Resend mail driver
+// Example: resend
 //
 //	driver, _ := mailresend.New(mailresend.Config{
 //		APIKey: "re_test_key",
@@ -109,7 +109,7 @@ func New(config Config) (*Driver, error) {
 // Send validates and transmits one message through Resend.
 // @group Resend
 //
-// Example: send one message through Resend
+// Example: send
 //
 //	driver, _ := mailresend.New(mailresend.Config{
 //		APIKey:   "re_test_key",

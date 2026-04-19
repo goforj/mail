@@ -24,7 +24,7 @@ type Option func(*Mailer)
 // New creates a Mailer backed by the provided driver.
 // @group Construction
 //
-// Example: create a mailer with a default from address
+// Example: with a default from
 //
 //	fake := mailfake.New()
 //	mailer := mail.New(fake, mail.WithDefaultFrom("no-reply@example.com", "Example"))
@@ -41,7 +41,7 @@ func New(driver Driver, options ...Option) *Mailer {
 // WithDefaultFrom configures the default from recipient applied when a message omits one.
 // @group Defaults
 //
-// Example: apply a default from address
+// Example: default from
 //
 //	mailer := mail.New(
 //		mailfake.New(),
@@ -58,7 +58,7 @@ func WithDefaultFrom(email, name string) Option {
 // WithDefaultReplyTo configures the default reply-to recipients applied when a message omits them.
 // @group Defaults
 //
-// Example: apply a default reply-to recipient
+// Example: default reply-to
 //
 //	mailer := mail.New(
 //		mailfake.New(),
@@ -80,7 +80,7 @@ func WithDefaultReplyTo(recipients ...Recipient) Option {
 // WithDefaultHeader configures a header applied when a message omits that header key.
 // @group Defaults
 //
-// Example: apply a default header
+// Example: default header
 //
 //	msg, _ := mail.New(
 //		mailfake.New(),
@@ -104,7 +104,7 @@ func WithDefaultHeader(key, value string) Option {
 // WithDefaultTag configures a tag prepended to every message sent by the mailer.
 // @group Defaults
 //
-// Example: apply a default tag
+// Example: default tag
 //
 //	msg, _ := mail.New(
 //		mailfake.New(),
@@ -125,7 +125,7 @@ func WithDefaultTag(tag string) Option {
 // WithDefaultMetadata configures metadata applied when a message omits that metadata key.
 // @group Defaults
 //
-// Example: apply default metadata
+// Example: default metadata
 //
 //	msg, _ := mail.New(
 //		mailfake.New(),
@@ -149,7 +149,7 @@ func WithDefaultMetadata(key, value string) Option {
 // Message starts a new fluent message builder bound to this mailer.
 // @group Composition
 //
-// Example: compose and send one message
+// Example: send one message
 //
 //	fake := mailfake.New()
 //	mailer := mail.New(fake, mail.WithDefaultFrom("no-reply@example.com", "Example"))
@@ -170,7 +170,7 @@ func (m *Mailer) Message() *MessageBuilder {
 // Send validates the message, applies defaults, and delegates delivery to the driver.
 // @group Delivery
 //
-// Example: send a prebuilt message
+// Example: send a message
 //
 //	mailer := mail.New(mailfake.New(), mail.WithDefaultFrom("no-reply@example.com", "Example"))
 //	err := mailer.Send(context.Background(), mail.Message{

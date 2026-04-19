@@ -13,7 +13,7 @@ type MessageBuilder struct {
 // From sets the from recipient.
 // @group Composition
 //
-// Example: override the from recipient for one message
+// Example: from
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
 //		From("team@example.com", "Example Team").
@@ -31,7 +31,7 @@ func (b *MessageBuilder) From(email, name string) *MessageBuilder {
 // ReplyTo appends one reply-to recipient.
 // @group Composition
 //
-// Example: add a reply-to recipient
+// Example: reply-to
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -49,7 +49,7 @@ func (b *MessageBuilder) ReplyTo(email, name string) *MessageBuilder {
 // To appends one primary recipient.
 // @group Composition
 //
-// Example: add one primary recipient
+// Example: to
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -66,7 +66,7 @@ func (b *MessageBuilder) To(email, name string) *MessageBuilder {
 // Cc appends one carbon-copy recipient.
 // @group Composition
 //
-// Example: add a cc recipient
+// Example: cc
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -84,7 +84,7 @@ func (b *MessageBuilder) Cc(email, name string) *MessageBuilder {
 // Bcc appends one blind-carbon-copy recipient.
 // @group Composition
 //
-// Example: add a bcc recipient
+// Example: bcc
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -102,7 +102,7 @@ func (b *MessageBuilder) Bcc(email, name string) *MessageBuilder {
 // Subject sets the message subject.
 // @group Content
 //
-// Example: set the subject line
+// Example: subject
 //
 //	msg := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -119,7 +119,7 @@ func (b *MessageBuilder) Subject(value string) *MessageBuilder {
 // HTML sets the HTML body.
 // @group Content
 //
-// Example: set an html body
+// Example: html
 //
 //	msg := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -136,7 +136,7 @@ func (b *MessageBuilder) HTML(value string) *MessageBuilder {
 // Text sets the plain text body.
 // @group Content
 //
-// Example: set a text body
+// Example: text
 //
 //	msg := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -153,7 +153,7 @@ func (b *MessageBuilder) Text(value string) *MessageBuilder {
 // Header sets or replaces one message header.
 // @group Content
 //
-// Example: attach headers, tags, and metadata
+// Example: header, tag, metadata
 //
 //	message, _ := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -176,7 +176,7 @@ func (b *MessageBuilder) Header(key, value string) *MessageBuilder {
 // Tag appends one provider-facing message tag.
 // @group Content
 //
-// Example: add a provider-facing tag
+// Example: tag
 //
 //	msg := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -194,7 +194,7 @@ func (b *MessageBuilder) Tag(value string) *MessageBuilder {
 // Metadata sets one provider-facing metadata key/value pair.
 // @group Content
 //
-// Example: add provider-facing metadata
+// Example: metadata
 //
 //	msg := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -215,7 +215,7 @@ func (b *MessageBuilder) Metadata(key, value string) *MessageBuilder {
 // Attach appends one in-memory attachment.
 // @group Content
 //
-// Example: attach one text file from bytes
+// Example: attach
 //
 //	msg := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -233,7 +233,7 @@ func (b *MessageBuilder) Attach(filename, contentType string, data []byte) *Mess
 // AttachFile loads one attachment from disk and appends it to the message.
 // @group Content
 //
-// Example: attach one file from disk
+// Example: attach file
 //
 //	_ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
 //	defer os.Remove("report.txt")
@@ -261,7 +261,7 @@ func (b *MessageBuilder) AttachFile(path string) *MessageBuilder {
 // Message returns the currently composed message without applying mailer defaults.
 // @group Composition
 //
-// Example: inspect the in-progress message
+// Example: current message
 //
 //	msg := mail.New(mailfake.New()).Message().
 //		To("alice@example.com", "Alice").
@@ -277,7 +277,7 @@ func (b *MessageBuilder) Message() Message {
 // Build applies defaults, validates, and returns the composed message without sending it.
 // @group Delivery
 //
-// Example: build without sending
+// Example: build
 //
 //	msg, _ := mail.New(
 //		mailfake.New(),
@@ -310,7 +310,7 @@ func (b *MessageBuilder) Build() (Message, error) {
 // Send delegates the composed message to the bound mailer.
 // @group Delivery
 //
-// Example: send through the bound mailer
+// Example: send
 //
 //	fake := mailfake.New()
 //	_ = mail.New(fake).Message().

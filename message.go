@@ -65,7 +65,7 @@ type Message struct {
 // AttachmentFromBytes creates one attachment from in-memory content.
 // @group Message Model
 //
-// Example: create an attachment from bytes
+// Example: from bytes
 //
 //	attachment := mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello world"))
 //	fmt.Println(attachment.Filename)
@@ -81,7 +81,7 @@ func AttachmentFromBytes(filename, contentType string, data []byte) Attachment {
 // AttachmentFromPath loads one attachment from a local file path.
 // @group Message Model
 //
-// Example: load an attachment from disk
+// Example: from a file
 //
 //	_ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
 //	defer os.Remove("report.txt")
@@ -108,7 +108,7 @@ func AttachmentFromPath(path string) (Attachment, error) {
 // Clone returns a copy of the message safe for reuse in tests and builders.
 // @group Message Model
 //
-// Example: clone before mutating
+// Example: clone
 //
 //	original := mail.Message{
 //		To:      []mail.Recipient{{Email: "alice@example.com", Name: "Alice"}},
@@ -158,7 +158,7 @@ func (m Message) Clone() Message {
 // Validate checks that the message has valid recipients, subject, body, and headers.
 // @group Message Model
 //
-// Example: validate a complete message
+// Example: validate
 //
 //	err := (mail.Message{
 //		From:    &mail.Recipient{Email: "no-reply@example.com", Name: "Example"},

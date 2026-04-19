@@ -361,12 +361,14 @@ func renderAPI(funcs []*FuncDoc) string {
 			if fn.Description != "" {
 				buf.WriteString(fn.Description + "\n\n")
 			}
-			for _, ex := range fn.Examples {
+			for i, ex := range fn.Examples {
 				label := strings.TrimSpace(ex.Label)
-				if label == "" {
-					label = "Example"
+				if i > 0 {
+					if label == "" {
+						label = "Example"
+					}
+					buf.WriteString(label + ":\n\n")
 				}
-				buf.WriteString(label + ":\n\n")
 				buf.WriteString("```go\n")
 				buf.WriteString(ex.Code)
 				buf.WriteString("\n```\n\n")
