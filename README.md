@@ -82,14 +82,14 @@ Notes:
 
 | Driver | HTML/Text | Headers | Tags | Metadata | Attachments | Notes |
 |:--|:--:|:--:|:--:|:--:|:--:|:--|
-| `mailsmtp` | ✓ | ✓ | x | x | ✓ | Covers Gmail and other SMTP providers. |
-| `mailresend` | ✓ | ✓ | ✓ | ✓ | ✓ | API-backed transactional delivery. |
-| `mailpostmark` | ✓ | ✓ | ✓ | ✓ | ✓ | First tag is native; additional tags are mapped into metadata. |
-| `mailmailgun` | ✓ | ✓ | ✓ | ✓ | ✓ | Uses Mailgun multipart message uploads. |
-| `mailsendgrid` | ✓ | ✓ | ✓ | ✓ | ✓ | Maps tags to categories and metadata to custom args. |
-| `mailses` | ✓ | ✓ | ✓ | ✓ | ✓ | Uses SES raw email with the same MIME rendering as SMTP. |
-| `maillog` | ✓ | ✓ | x | x | ✓ | Local/dev inspection only; logs the composed message. |
-| `mailfake` | ✓ | ✓ | ✓ | ✓ | ✓ | Test helper; captures the full portable message. |
+| mailsmtp | ✓ | ✓ | x | x | ✓ | Covers Gmail and other SMTP providers. |
+| mailresend | ✓ | ✓ | ✓ | ✓ | ✓ | API-backed transactional delivery. |
+| mailpostmark | ✓ | ✓ | ✓ | ✓ | ✓ | First tag is native; additional tags are mapped into metadata. |
+| mailmailgun | ✓ | ✓ | ✓ | ✓ | ✓ | Uses Mailgun multipart message uploads. |
+| mailsendgrid | ✓ | ✓ | ✓ | ✓ | ✓ | Maps tags to categories and metadata to custom args. |
+| mailses | ✓ | ✓ | ✓ | ✓ | ✓ | Uses SES raw email with the same MIME rendering as SMTP. |
+| maillog | ✓ | ✓ | x | x | ✓ | Local/dev inspection only; logs the composed message. |
+| mailfake | ✓ | ✓ | ✓ | ✓ | ✓ | Test helper; captures the full portable message. |
 
 ## API
 
