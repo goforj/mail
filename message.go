@@ -2,7 +2,10 @@ package mail
 
 import (
 	"errors"
+	"mime"
 	"net/mail"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -23,6 +26,8 @@ var (
 	ErrInvalidReplyTo = errors.New("mail: invalid reply-to recipient")
 	// ErrInvalidHeaderName indicates that a header name is empty or malformed.
 	ErrInvalidHeaderName = errors.New("mail: invalid header name")
+	// ErrInvalidAttachment indicates that an attachment is missing required fields.
+	ErrInvalidAttachment = errors.New("mail: invalid attachment")
 )
 
 // Recipient identifies one email recipient with an optional display name.
@@ -32,20 +37,72 @@ type Recipient struct {
 	Name  string
 }
 
+// Attachment is one portable mail attachment.
+// @group Message Model
+type Attachment struct {
+	Filename    string
+	ContentType string
+	Data        []byte
+}
+
 // Message is the canonical portable email envelope used by drivers.
 // @group Message Model
 type Message struct {
-	From     *Recipient
-	ReplyTo  []Recipient
-	To       []Recipient
-	Cc       []Recipient
-	Bcc      []Recipient
-	Subject  string
-	HTML     string
-	Text     string
-	Headers  map[string]string
-	Tags     []string
-	Metadata map[string]string
+	From        *Recipient
+	ReplyTo     []Recipient
+	To          []Recipient
+	Cc          []Recipient
+	Bcc         []Recipient
+	Subject     string
+	HTML        string
+	Text        string
+	Headers     map[string]string
+	Tags        []string
+	Metadata    map[string]string
+	Attachments []Attachment
+}
+
+// AttachmentFromBytes creates one attachment from in-memory content.
+// @group Message Model
+//
+// Example: create an attachment from bytes
+//
+//	attachment := mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello world"))
+//	fmt.Println(attachment.Filename)
+//	// report.txt
+func AttachmentFromBytes(filename, contentType string, data []byte) Attachment {
+	return Attachment{
+		Filename:    strings.TrimSpace(filename),
+		ContentType: strings.TrimSpace(contentType),
+		Data:        append([]byte(nil), data...),
+	}
+}
+
+// AttachmentFromPath loads one attachment from a local file path.
+// @group Message Model
+//
+// Example: load an attachment from disk
+//
+//	_ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
+//	defer os.Remove("report.txt")
+//	attachment, _ := mail.AttachmentFromPath("report.txt")
+//	fmt.Println(attachment.Filename)
+//	// report.txt
+func AttachmentFromPath(path string) (Attachment, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Attachment{}, err
+	}
+	filename := filepath.Base(path)
+	contentType := mime.TypeByExtension(filepath.Ext(filename))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	return Attachment{
+		Filename:    filename,
+		ContentType: contentType,
+		Data:        data,
+	}, nil
 }
 
 // Clone returns a copy of the message safe for reuse in tests and builders.
@@ -73,6 +130,16 @@ func (m Message) Clone() Message {
 	cloned.Cc = append([]Recipient(nil), m.Cc...)
 	cloned.Bcc = append([]Recipient(nil), m.Bcc...)
 	cloned.Tags = append([]string(nil), m.Tags...)
+	if len(m.Attachments) > 0 {
+		cloned.Attachments = make([]Attachment, 0, len(m.Attachments))
+		for _, attachment := range m.Attachments {
+			cloned.Attachments = append(cloned.Attachments, Attachment{
+				Filename:    attachment.Filename,
+				ContentType: attachment.ContentType,
+				Data:        append([]byte(nil), attachment.Data...),
+			})
+		}
+	}
 	if len(m.Headers) > 0 {
 		cloned.Headers = make(map[string]string, len(m.Headers))
 		for k, v := range m.Headers {
@@ -140,6 +207,17 @@ func (m Message) Validate() error {
 	for name := range m.Headers {
 		if strings.TrimSpace(name) == "" || strings.ContainsAny(name, "\r\n:") {
 			return ErrInvalidHeaderName
+		}
+	}
+	for _, attachment := range m.Attachments {
+		if strings.TrimSpace(attachment.Filename) == "" {
+			return ErrInvalidAttachment
+		}
+		if strings.TrimSpace(attachment.ContentType) == "" {
+			return ErrInvalidAttachment
+		}
+		if attachment.Data == nil {
+			return ErrInvalidAttachment
 		}
 	}
 	return nil

@@ -7,6 +7,7 @@ import "context"
 type MessageBuilder struct {
 	mailer  *Mailer
 	message Message
+	err     error
 }
 
 // From sets the from recipient.
@@ -211,6 +212,52 @@ func (b *MessageBuilder) Metadata(key, value string) *MessageBuilder {
 	return b
 }
 
+// Attach appends one in-memory attachment.
+// @group Content
+//
+// Example: attach one text file from bytes
+//
+//	msg := mail.New(mailfake.New()).Message().
+//		To("alice@example.com", "Alice").
+//		Subject("Welcome").
+//		Text("hello world").
+//		Attach("report.txt", "text/plain", []byte("hello world")).
+//		Message()
+//	fmt.Println(msg.Attachments[0].Filename)
+//	// report.txt
+func (b *MessageBuilder) Attach(filename, contentType string, data []byte) *MessageBuilder {
+	b.message.Attachments = append(b.message.Attachments, AttachmentFromBytes(filename, contentType, data))
+	return b
+}
+
+// AttachFile loads one attachment from disk and appends it to the message.
+// @group Content
+//
+// Example: attach one file from disk
+//
+//	_ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
+//	defer os.Remove("report.txt")
+//	msg, _ := mail.New(mailfake.New()).Message().
+//		To("alice@example.com", "Alice").
+//		Subject("Welcome").
+//		Text("hello world").
+//		AttachFile("report.txt").
+//		Build()
+//	fmt.Println(msg.Attachments[0].Filename)
+//	// report.txt
+func (b *MessageBuilder) AttachFile(path string) *MessageBuilder {
+	if b.err != nil {
+		return b
+	}
+	attachment, err := AttachmentFromPath(path)
+	if err != nil {
+		b.err = err
+		return b
+	}
+	b.message.Attachments = append(b.message.Attachments, attachment)
+	return b
+}
+
 // Message returns the currently composed message without applying mailer defaults.
 // @group Composition
 //
@@ -243,6 +290,9 @@ func (b *MessageBuilder) Message() Message {
 //	fmt.Println(msg.From.Email)
 //	// no-reply@example.com
 func (b *MessageBuilder) Build() (Message, error) {
+	if b.err != nil {
+		return Message{}, b.err
+	}
 	if b.mailer == nil {
 		msg := b.message.Clone()
 		if err := msg.Validate(); err != nil {
@@ -272,6 +322,9 @@ func (b *MessageBuilder) Build() (Message, error) {
 //	fmt.Println(fake.SentCount())
 //	// 1
 func (b *MessageBuilder) Send(ctx context.Context) error {
+	if b.err != nil {
+		return b.err
+	}
 	if b.mailer == nil {
 		return ErrMissingMailer
 	}

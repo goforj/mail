@@ -174,6 +174,15 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 			return err
 		}
 	}
+	for _, attachment := range message.Attachments {
+		part, err := writer.CreateFormFile("attachment", attachment.Filename)
+		if err != nil {
+			return err
+		}
+		if _, err := part.Write(attachment.Data); err != nil {
+			return err
+		}
+	}
 	for key, value := range message.Metadata {
 		if err := writeField("v:"+key, value); err != nil {
 			return err

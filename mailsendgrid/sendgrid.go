@@ -3,6 +3,7 @@ package mailsendgrid
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,6 +37,7 @@ type sendRequest struct {
 	Subject          string            `json:"subject"`
 	Personalizations []personalization `json:"personalizations"`
 	Content          []contentBlock    `json:"content"`
+	Attachments      []attachment      `json:"attachments,omitempty"`
 	Headers          map[string]string `json:"headers,omitempty"`
 	Categories       []string          `json:"categories,omitempty"`
 	CustomArgs       map[string]string `json:"custom_args,omitempty"`
@@ -57,6 +59,13 @@ type personalization struct {
 type contentBlock struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
+}
+
+type attachment struct {
+	Content     string `json:"content"`
+	Type        string `json:"type,omitempty"`
+	Filename    string `json:"filename"`
+	Disposition string `json:"disposition,omitempty"`
 }
 
 type apiError struct {
@@ -152,6 +161,9 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	if metadata := copyStringMap(message.Metadata); len(metadata) > 0 {
 		payload.CustomArgs = metadata
 	}
+	if attachments := buildAttachments(message.Attachments); len(attachments) > 0 {
+		payload.Attachments = attachments
+	}
 
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -243,6 +255,22 @@ func copyStringMap(values map[string]string) map[string]string {
 	out := make(map[string]string, len(values))
 	for key, value := range values {
 		out[key] = value
+	}
+	return out
+}
+
+func buildAttachments(values []mail.Attachment) []attachment {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]attachment, 0, len(values))
+	for _, value := range values {
+		out = append(out, attachment{
+			Content:     base64.StdEncoding.EncodeToString(value.Data),
+			Type:        value.ContentType,
+			Filename:    value.Filename,
+			Disposition: "attachment",
+		})
 	}
 	return out
 }

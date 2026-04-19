@@ -22,16 +22,21 @@ func TestNewRequiresAPIKey(t *testing.T) {
 
 func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	type requestBody struct {
-		From    string            `json:"from"`
-		To      []string          `json:"to"`
-		Cc      []string          `json:"cc"`
-		Bcc     []string          `json:"bcc"`
-		ReplyTo []string          `json:"reply_to"`
-		Subject string            `json:"subject"`
-		HTML    string            `json:"html"`
-		Text    string            `json:"text"`
-		Headers map[string]string `json:"headers"`
-		Tags    []struct {
+		From        string            `json:"from"`
+		To          []string          `json:"to"`
+		Cc          []string          `json:"cc"`
+		Bcc         []string          `json:"bcc"`
+		ReplyTo     []string          `json:"reply_to"`
+		Subject     string            `json:"subject"`
+		HTML        string            `json:"html"`
+		Text        string            `json:"text"`
+		Headers     map[string]string `json:"headers"`
+		Attachments []struct {
+			Filename    string `json:"filename"`
+			Content     string `json:"content"`
+			ContentType string `json:"content_type"`
+		} `json:"attachments"`
+		Tags []struct {
 			Name  string `json:"name"`
 			Value string `json:"value"`
 		} `json:"tags"`
@@ -88,6 +93,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 		Metadata: map[string]string{
 			"tenant_id": "tenant_123",
 		},
+		Attachments: []mail.Attachment{
+			mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello attachment")),
+		},
 	})
 	if err != nil {
 		t.Fatalf("send: %v", err)
@@ -128,6 +136,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	}
 	if len(gotBody.Tags) != 2 {
 		t.Fatalf("tags = %#v", gotBody.Tags)
+	}
+	if len(gotBody.Attachments) != 1 || gotBody.Attachments[0].Filename != "report.txt" {
+		t.Fatalf("attachments = %#v", gotBody.Attachments)
 	}
 }
 

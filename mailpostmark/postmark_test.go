@@ -31,6 +31,7 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 		HTMLBody      string            `json:"HtmlBody"`
 		TextBody      string            `json:"TextBody"`
 		Headers       []map[string]any  `json:"Headers"`
+		Attachments   []map[string]any  `json:"Attachments"`
 		Tag           string            `json:"Tag"`
 		Metadata      map[string]string `json:"Metadata"`
 		MessageStream string            `json:"MessageStream"`
@@ -83,6 +84,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 		Metadata: map[string]string{
 			"tenant_id": "tenant_123",
 		},
+		Attachments: []mail.Attachment{
+			mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello attachment")),
+		},
 	})
 	if err != nil {
 		t.Fatalf("send: %v", err)
@@ -120,6 +124,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	}
 	if gotBody.MessageStream != "outbound" {
 		t.Fatalf("message stream = %q", gotBody.MessageStream)
+	}
+	if len(gotBody.Attachments) != 1 || gotBody.Attachments[0]["Name"] != "report.txt" {
+		t.Fatalf("attachments = %#v", gotBody.Attachments)
 	}
 }
 

@@ -336,6 +336,9 @@ func inferImports(code, importPath string) []string {
 	if strings.Contains(code, "errors.") {
 		add("errors")
 	}
+	if strings.Contains(code, "os.") {
+		add("os")
+	}
 	if strings.Contains(code, "time.") {
 		add("time")
 	}

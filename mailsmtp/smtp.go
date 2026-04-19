@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net"
 	stdmail "net/mail"
@@ -209,31 +211,77 @@ func Render(message mail.Message) ([]byte, error) {
 		}
 	}
 
-	html := strings.TrimSpace(message.HTML)
-	text := strings.TrimSpace(message.Text)
-	if html != "" && text != "" {
-		body, contentType, err := renderMultipartAlternative(text, html)
-		if err != nil {
-			return nil, err
-		}
-		buffer.WriteString("Content-Type: ")
-		buffer.WriteString(contentType)
-		buffer.WriteString("\r\n\r\n")
-		buffer.Write(body)
-		return buffer.Bytes(), nil
-	}
-
-	contentType := `text/plain; charset="utf-8"`
-	body := text
-	if html != "" {
-		contentType = `text/html; charset="utf-8"`
-		body = html
+	body, contentType, err := renderBody(message)
+	if err != nil {
+		return nil, err
 	}
 	buffer.WriteString("Content-Type: ")
 	buffer.WriteString(contentType)
 	buffer.WriteString("\r\n\r\n")
-	buffer.WriteString(body)
+	buffer.Write(body)
 	return buffer.Bytes(), nil
+}
+
+func renderBody(message mail.Message) ([]byte, string, error) {
+	html := strings.TrimSpace(message.HTML)
+	text := strings.TrimSpace(message.Text)
+	if len(message.Attachments) == 0 {
+		if html != "" && text != "" {
+			return renderMultipartAlternative(text, html)
+		}
+		contentType := `text/plain; charset="utf-8"`
+		body := text
+		if html != "" {
+			contentType = `text/html; charset="utf-8"`
+			body = html
+		}
+		return []byte(body), contentType, nil
+	}
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	inlineBody, inlineType, err := renderInlineBody(text, html)
+	if err != nil {
+		return nil, "", err
+	}
+	messageHeader := textproto.MIMEHeader{}
+	messageHeader.Set("Content-Type", inlineType)
+	messagePart, err := writer.CreatePart(messageHeader)
+	if err != nil {
+		return nil, "", err
+	}
+	if _, err := messagePart.Write(inlineBody); err != nil {
+		return nil, "", err
+	}
+
+	for _, attachment := range message.Attachments {
+		partHeader := textproto.MIMEHeader{}
+		partHeader.Set("Content-Type", attachment.ContentType)
+		partHeader.Set("Content-Disposition", `attachment; filename="`+escapeHeaderToken(attachment.Filename)+`"`)
+		partHeader.Set("Content-Transfer-Encoding", "base64")
+		part, err := writer.CreatePart(partHeader)
+		if err != nil {
+			return nil, "", err
+		}
+		lineWriter := newBase64LineWriter(part)
+		encoder := base64.NewEncoder(base64.StdEncoding, lineWriter)
+		if _, err := encoder.Write(attachment.Data); err != nil {
+			_ = encoder.Close()
+			return nil, "", err
+		}
+		if err := encoder.Close(); err != nil {
+			return nil, "", err
+		}
+		if err := lineWriter.Close(); err != nil {
+			return nil, "", err
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return body.Bytes(), `multipart/mixed; boundary="` + writer.Boundary() + `"`, nil
 }
 
 func renderMultipartAlternative(textBody, htmlBody string) ([]byte, string, error) {
@@ -266,6 +314,55 @@ func renderMultipartAlternative(textBody, htmlBody string) ([]byte, string, erro
 		return nil, "", err
 	}
 	return body.Bytes(), `multipart/alternative; boundary="` + writer.Boundary() + `"`, nil
+}
+
+func renderInlineBody(textBody, htmlBody string) ([]byte, string, error) {
+	if strings.TrimSpace(textBody) != "" && strings.TrimSpace(htmlBody) != "" {
+		return renderMultipartAlternative(textBody, htmlBody)
+	}
+	if strings.TrimSpace(htmlBody) != "" {
+		return []byte(htmlBody), `text/html; charset="utf-8"`, nil
+	}
+	return []byte(textBody), `text/plain; charset="utf-8"`, nil
+}
+
+func escapeHeaderToken(value string) string {
+	replacer := strings.NewReplacer(`\`, `\\`, `"`, `\"`)
+	return replacer.Replace(value)
+}
+
+type base64LineWriter struct {
+	writer bytes.Buffer
+	target io.Writer
+}
+
+func newBase64LineWriter(target io.Writer) *base64LineWriter {
+	return &base64LineWriter{target: target}
+}
+
+func (w *base64LineWriter) Write(p []byte) (int, error) {
+	w.writer.Write(p)
+	for w.writer.Len() >= 76 {
+		chunk := w.writer.Next(76)
+		if _, err := w.target.Write(chunk); err != nil {
+			return 0, err
+		}
+		if _, err := w.target.Write([]byte("\r\n")); err != nil {
+			return 0, err
+		}
+	}
+	return len(p), nil
+}
+
+func (w *base64LineWriter) Close() error {
+	if w.writer.Len() == 0 {
+		return nil
+	}
+	if _, err := w.target.Write(w.writer.Bytes()); err != nil {
+		return err
+	}
+	_, err := w.target.Write([]byte("\r\n"))
+	return err
 }
 
 func collectRecipients(message mail.Message) []string {

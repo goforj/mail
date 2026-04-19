@@ -3,6 +3,7 @@ package mailresend
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,21 +34,28 @@ type Driver struct {
 }
 
 type sendRequest struct {
-	From    string            `json:"from"`
-	To      []string          `json:"to"`
-	Cc      []string          `json:"cc,omitempty"`
-	Bcc     []string          `json:"bcc,omitempty"`
-	ReplyTo []string          `json:"reply_to,omitempty"`
-	Subject string            `json:"subject"`
-	HTML    string            `json:"html,omitempty"`
-	Text    string            `json:"text,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
-	Tags    []tag             `json:"tags,omitempty"`
+	From        string            `json:"from"`
+	To          []string          `json:"to"`
+	Cc          []string          `json:"cc,omitempty"`
+	Bcc         []string          `json:"bcc,omitempty"`
+	ReplyTo     []string          `json:"reply_to,omitempty"`
+	Subject     string            `json:"subject"`
+	HTML        string            `json:"html,omitempty"`
+	Text        string            `json:"text,omitempty"`
+	Headers     map[string]string `json:"headers,omitempty"`
+	Tags        []tag             `json:"tags,omitempty"`
+	Attachments []attachment      `json:"attachments,omitempty"`
 }
 
 type tag struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type attachment struct {
+	Filename    string `json:"filename"`
+	Content     string `json:"content"`
+	ContentType string `json:"content_type,omitempty"`
 }
 
 type sendResponse struct {
@@ -148,6 +156,9 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 
 	if tags := buildTags(message.Tags, message.Metadata); len(tags) > 0 {
 		payload.Tags = tags
+	}
+	if attachments := buildAttachments(message.Attachments); len(attachments) > 0 {
+		payload.Attachments = attachments
 	}
 
 	data, err := json.Marshal(payload)
@@ -253,6 +264,21 @@ func buildTags(tags []string, metadata map[string]string) []tag {
 			continue
 		}
 		out = append(out, tag{Name: name, Value: tagValue})
+	}
+	return out
+}
+
+func buildAttachments(values []mail.Attachment) []attachment {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]attachment, 0, len(values))
+	for _, value := range values {
+		out = append(out, attachment{
+			Filename:    value.Filename,
+			Content:     base64.StdEncoding.EncodeToString(value.Data),
+			ContentType: value.ContentType,
+		})
 	}
 	return out
 }

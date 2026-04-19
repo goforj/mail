@@ -3,6 +3,7 @@ package mailmailgun_test
 import (
 	"context"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,6 +28,7 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	var gotAuth string
 	var gotPath string
 	var values map[string][]string
+	var files map[string][]*multipart.FileHeader
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
@@ -37,6 +39,7 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 			t.Fatalf("parse multipart: %v", err)
 		}
 		values = r.MultipartForm.Value
+		files = r.MultipartForm.File
 
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"id":"mailgun_123","message":"Queued. Thank you."}`)
@@ -66,6 +69,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 		Tags:    []string{"welcome", "transactional"},
 		Metadata: map[string]string{
 			"tenant_id": "tenant_123",
+		},
+		Attachments: []mail.Attachment{
+			mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello attachment")),
 		},
 	})
 	if err != nil {
@@ -101,6 +107,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	}
 	if values["v:tenant_id"][0] != "tenant_123" {
 		t.Fatalf("metadata = %#v", values)
+	}
+	if len(files["attachment"]) != 1 || files["attachment"][0].Filename != "report.txt" {
+		t.Fatalf("attachments = %#v", files["attachment"])
 	}
 }
 

@@ -3,6 +3,7 @@ package mail_test
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/goforj/mail"
@@ -80,5 +81,52 @@ func TestMessageValidation(t *testing.T) {
 	message.To = nil
 	if err := message.Validate(); !errors.Is(err, mail.ErrMissingRecipient) {
 		t.Fatalf("validate missing recipients error = %v, want %v", err, mail.ErrMissingRecipient)
+	}
+}
+
+func TestBuilderAttachments(t *testing.T) {
+	if err := os.WriteFile("test-attachment.txt", []byte("hello attachment"), 0o644); err != nil {
+		t.Fatalf("write temp attachment: %v", err)
+	}
+	defer os.Remove("test-attachment.txt")
+
+	message, err := mail.New(mailfake.New()).
+		Message().
+		To("alice@example.com", "Alice").
+		Subject("Welcome").
+		Text("hello world").
+		Attach("inline.txt", "text/plain", []byte("hello inline")).
+		AttachFile("test-attachment.txt").
+		Build()
+	if err != nil {
+		t.Fatalf("build message with attachments: %v", err)
+	}
+
+	if len(message.Attachments) != 2 {
+		t.Fatalf("attachments = %#v, want 2", message.Attachments)
+	}
+	if message.Attachments[0].Filename != "inline.txt" {
+		t.Fatalf("first attachment = %#v", message.Attachments[0])
+	}
+	if message.Attachments[1].Filename != "test-attachment.txt" {
+		t.Fatalf("second attachment = %#v", message.Attachments[1])
+	}
+}
+
+func TestAttachmentFromPathLoadsFile(t *testing.T) {
+	if err := os.WriteFile("path-attachment.txt", []byte("hello path"), 0o644); err != nil {
+		t.Fatalf("write temp attachment: %v", err)
+	}
+	defer os.Remove("path-attachment.txt")
+
+	attachment, err := mail.AttachmentFromPath("path-attachment.txt")
+	if err != nil {
+		t.Fatalf("attachment from path: %v", err)
+	}
+	if attachment.Filename != "path-attachment.txt" {
+		t.Fatalf("filename = %q", attachment.Filename)
+	}
+	if len(attachment.Data) == 0 {
+		t.Fatalf("expected attachment data")
 	}
 }

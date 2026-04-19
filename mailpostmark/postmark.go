@@ -3,6 +3,7 @@ package mailpostmark
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,6 +44,7 @@ type sendRequest struct {
 	HTMLBody      string            `json:"HtmlBody,omitempty"`
 	TextBody      string            `json:"TextBody,omitempty"`
 	Headers       []header          `json:"Headers,omitempty"`
+	Attachments   []attachment      `json:"Attachments,omitempty"`
 	Tag           string            `json:"Tag,omitempty"`
 	Metadata      map[string]string `json:"Metadata,omitempty"`
 	MessageStream string            `json:"MessageStream,omitempty"`
@@ -51,6 +53,12 @@ type sendRequest struct {
 type header struct {
 	Name  string `json:"Name"`
 	Value string `json:"Value"`
+}
+
+type attachment struct {
+	Name        string `json:"Name"`
+	Content     string `json:"Content"`
+	ContentType string `json:"ContentType"`
 }
 
 type sendResponse struct {
@@ -156,6 +164,9 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	if headers := buildHeaders(message.Headers); len(headers) > 0 {
 		payload.Headers = headers
 	}
+	if attachments := buildAttachments(message.Attachments); len(attachments) > 0 {
+		payload.Attachments = attachments
+	}
 
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -234,6 +245,21 @@ func copyStringMap(in map[string]string) map[string]string {
 	out := make(map[string]string, len(in))
 	for key, value := range in {
 		out[key] = value
+	}
+	return out
+}
+
+func buildAttachments(in []mail.Attachment) []attachment {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]attachment, 0, len(in))
+	for _, value := range in {
+		out = append(out, attachment{
+			Name:        value.Filename,
+			Content:     base64.StdEncoding.EncodeToString(value.Data),
+			ContentType: value.ContentType,
+		})
 	}
 	return out
 }

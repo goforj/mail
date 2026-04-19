@@ -58,3 +58,30 @@ func TestRenderSinglePartTextMessage(t *testing.T) {
 		t.Fatalf("expected text content-type in\n%s", string(raw))
 	}
 }
+
+func TestRenderMultipartMixedWithAttachment(t *testing.T) {
+	raw, err := mailsmtp.Render(mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
+		To:      []mail.Recipient{{Email: "alice@example.com"}},
+		Subject: "Welcome",
+		Text:    "hello text",
+		Attachments: []mail.Attachment{
+			mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello attachment")),
+		},
+	})
+	if err != nil {
+		t.Fatalf("render attachment smtp message: %v", err)
+	}
+
+	rendered := string(raw)
+	for _, expected := range []string{
+		`multipart/mixed; boundary=`,
+		`Content-Disposition: attachment; filename="report.txt"`,
+		`Content-Transfer-Encoding: base64`,
+		`aGVsbG8gYXR0YWNobWVudA==`,
+	} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("expected %q in rendered smtp message\n%s", expected, rendered)
+		}
+	}
+}

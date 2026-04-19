@@ -51,6 +51,12 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 			Type  string `json:"type"`
 			Value string `json:"value"`
 		} `json:"content"`
+		Attachments []struct {
+			Content     string `json:"content"`
+			Type        string `json:"type"`
+			Filename    string `json:"filename"`
+			Disposition string `json:"disposition"`
+		} `json:"attachments"`
 		Headers    map[string]string `json:"headers"`
 		Categories []string          `json:"categories"`
 		CustomArgs map[string]string `json:"custom_args"`
@@ -102,6 +108,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 		Tags: []string{"welcome"},
 		Metadata: map[string]string{
 			"tenant_id": "tenant_123",
+		},
+		Attachments: []mail.Attachment{
+			mail.AttachmentFromBytes("report.txt", "text/plain", []byte("hello attachment")),
 		},
 	})
 	if err != nil {
@@ -155,6 +164,9 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	}
 	if len(gotBody.Content) != 2 {
 		t.Fatalf("content = %#v", gotBody.Content)
+	}
+	if len(gotBody.Attachments) != 1 || gotBody.Attachments[0].Filename != "report.txt" {
+		t.Fatalf("attachments = %#v", gotBody.Attachments)
 	}
 }
 
