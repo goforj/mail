@@ -69,6 +69,7 @@ func main() {
 | **Delivery** | [Mailer.Send](#mailer-send) [MessageBuilder.Build](#messagebuilder-build) [MessageBuilder.Send](#messagebuilder-send) |
 | **Logging** | [maillog.Driver.Send](#maillog-driver-send) [maillog.New](#maillog-new) [maillog.WithBodies](#maillog-withbodies) [maillog.WithNow](#maillog-withnow) |
 | **Message Model** | [Message.Clone](#message-clone) [Message.Validate](#message-validate) |
+| **Resend** | [mailresend.Driver.Send](#mailresend-driver-send) [mailresend.New](#mailresend-new) |
 | **SMTP** | [mailsmtp.Driver.Send](#mailsmtp-driver-send) [mailsmtp.New](#mailsmtp-new) [mailsmtp.Render](#mailsmtp-render) |
 | **Testing** | [mailfake.Driver.Last](#mailfake-driver-last) [mailfake.Driver.Messages](#mailfake-driver-messages) [mailfake.Driver.Reset](#mailfake-driver-reset) [mailfake.Driver.Send](#mailfake-driver-send) [mailfake.Driver.SentCount](#mailfake-driver-sentcount) [mailfake.Driver.SetError](#mailfake-driver-seterror) [mailfake.New](#mailfake-new) |
 
@@ -577,6 +578,43 @@ err := (mail.Message{
 	Text:    "hello world",
 }).Validate()
 fmt.Println(err == nil)
+// true
+```
+
+### Resend
+
+#### <a id="mailresend-driver-send"></a>`mailresend.Driver.Send`
+
+Send validates and transmits one message through Resend.
+
+send one message through Resend:
+
+```go
+driver, _ := mailresend.New(mailresend.Config{
+	APIKey:   "re_test_key",
+	Endpoint: "http://127.0.0.1:1",
+})
+err := driver.Send(context.Background(), mail.Message{
+	From:    &mail.Recipient{Email: "no-reply@example.com"},
+	To:      []mail.Recipient{{Email: "alice@example.com"}},
+	Subject: "Welcome",
+	Text:    "hello world",
+})
+fmt.Println(err == nil)
+// false
+```
+
+#### <a id="mailresend-new"></a>`mailresend.New`
+
+New creates a Resend mail driver from the given config.
+
+configure a Resend mail driver:
+
+```go
+driver, _ := mailresend.New(mailresend.Config{
+	APIKey: "re_test_key",
+})
+fmt.Println(driver != nil)
 // true
 ```
 
