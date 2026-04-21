@@ -7,10 +7,26 @@
 </p>
 
 <p align="center">
+  <a href="https://pkg.go.dev/github.com/goforj/mail"><img src="https://pkg.go.dev/badge/github.com/goforj/mail.svg" alt="Go Reference"></a>
+  <a href="https://github.com/goforj/mail/actions/workflows/ci.yml"><img src="https://github.com/goforj/mail/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.25+-blue?logo=go" alt="Go version"></a>
+  <img src="https://img.shields.io/github/v/tag/goforj/mail?label=version&sort=semver&filter=%21mailses%2A" alt="Latest tag">
+  <a href="https://goreportcard.com/report/github.com/goforj/mail"><img src="https://goreportcard.com/badge/github.com/goforj/mail" alt="Go Report Card"></a>
+  <a href="https://codecov.io/gh/goforj/mail"><img src="https://codecov.io/gh/goforj/mail/graph/badge.svg?token=PJJVA66P5X" alt="Codecov"></a>
 <!-- test-count:embed:start -->
-<img src="https://img.shields.io/badge/unit_tests-29-brightgreen" alt="Unit tests (executed count)">
-<img src="https://img.shields.io/badge/integration_tests-0-blue" alt="Integration tests (executed count)">
+<img src="https://img.shields.io/badge/unit_tests-30-brightgreen" alt="Unit tests (executed count)">
 <!-- test-count:embed:end -->
+<!-- package-coverage:embed:start -->
+<img src="https://img.shields.io/badge/mail-73.4%25-4c9a2a" alt="mail coverage">
+<img src="https://img.shields.io/badge/mailfake-32.1%25-4c9a2a" alt="mailfake coverage">
+<img src="https://img.shields.io/badge/maillog-94.7%25-4c9a2a" alt="maillog coverage">
+<img src="https://img.shields.io/badge/mailmailgun-75.8%25-4c9a2a" alt="mailmailgun coverage">
+<img src="https://img.shields.io/badge/mailpostmark-87.2%25-4c9a2a" alt="mailpostmark coverage">
+<img src="https://img.shields.io/badge/mailresend-86.5%25-4c9a2a" alt="mailresend coverage">
+<img src="https://img.shields.io/badge/mailsendgrid-90.1%25-4c9a2a" alt="mailsendgrid coverage">
+<img src="https://img.shields.io/badge/mailses-78.2%25-4c9a2a" alt="mailses coverage">
+<img src="https://img.shields.io/badge/mailsmtp-53.6%25-4c9a2a" alt="mailsmtp coverage">
+<!-- package-coverage:embed:end -->
 </p>
 
 ## Installation
