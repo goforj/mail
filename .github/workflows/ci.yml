@@ -90,6 +90,16 @@ jobs:
       - name: Run combined coverage
         run: bash scripts/coverage-codecov.sh
 
+      - name: Report merged coverage
+        run: |
+          TOTAL="$(awk -F'[: ]+' 'NR>1 {covered += ($4 > 0 ? $3 : 0); total += $3} END {printf "%.1f%%", (covered/total)*100}' coverage.txt)"
+          echo "Merged coverage: $TOTAL"
+          {
+            echo "## Coverage"
+            echo
+            echo "- Merged total: $TOTAL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
         with:

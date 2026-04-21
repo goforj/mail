@@ -39,3 +39,4 @@ go tool covdata textfmt -i="$MERGED_DIR" -o="$OUTPUT_FILE"
 
 echo "==> Combined coverage written to $OUTPUT_FILE"
 go tool covdata percent -i="$MERGED_DIR"
+awk -F'[: ]+' 'NR>1 {covered += ($4 > 0 ? $3 : 0); total += $3} END {printf "==> Combined total %.1f%%\n", (covered/total)*100}' "$OUTPUT_FILE"
