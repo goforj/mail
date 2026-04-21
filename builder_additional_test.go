@@ -124,6 +124,42 @@ func TestBuilderBuildReturnsAttachmentError(t *testing.T) {
 	}
 }
 
+func TestBuilderSkipsSubsequentAttachFileAfterError(t *testing.T) {
+	builder := mail.New(mailfake.New()).Message().
+		To("alice@example.com", "Alice").
+		Subject("Welcome").
+		Text("hello world").
+		AttachFile("missing-file.txt").
+		AttachFile("still-missing.txt")
+
+	if _, err := builder.Build(); err == nil {
+		t.Fatal("Build() should preserve the first attachment error")
+	}
+}
+
+func TestBuilderSendReturnsBuildErrorEarly(t *testing.T) {
+	err := mail.New(mailfake.New()).Message().
+		To("alice@example.com", "Alice").
+		Subject("Welcome").
+		Text("hello world").
+		AttachFile("missing-file.txt").
+		Send(context.Background())
+	if err == nil {
+		t.Fatal("Send() should return the build error")
+	}
+}
+
+func TestBuilderBuildWithMailerReturnsValidationError(t *testing.T) {
+	_, err := mail.New(mailfake.New()).
+		Message().
+		Subject("Welcome").
+		Text("hello world").
+		Build()
+	if !errors.Is(err, mail.ErrMissingRecipient) {
+		t.Fatalf("Build() error = %v, want %v", err, mail.ErrMissingRecipient)
+	}
+}
+
 func TestMailerSendWithoutDriverFails(t *testing.T) {
 	mailer := mail.New(nil)
 	err := mailer.Send(context.Background(), mail.Message{

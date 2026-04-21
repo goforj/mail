@@ -44,6 +44,16 @@ func TestMessageValidateBranches(t *testing.T) {
 			want: mail.ErrInvalidRecipient,
 		},
 		{
+			name: "invalid recipient in bcc",
+			msg: mail.Message{
+				To:      []mail.Recipient{{Email: "alice@example.com"}},
+				Bcc:     []mail.Recipient{{Email: "bad"}},
+				Subject: "Welcome",
+				Text:    "hello",
+			},
+			want: mail.ErrInvalidRecipient,
+		},
+		{
 			name: "missing subject",
 			msg: mail.Message{
 				To:   []mail.Recipient{{Email: "alice@example.com"}},
@@ -114,5 +124,16 @@ func TestMessageValidateBranches(t *testing.T) {
 				t.Fatalf("Validate() error = %v, want %v", err, tt.want)
 			}
 		})
+	}
+}
+
+func TestMessageValidateRejectsBlankRecipientAddress(t *testing.T) {
+	err := (mail.Message{
+		To:      []mail.Recipient{{Email: "   "}},
+		Subject: "Welcome",
+		Text:    "hello",
+	}).Validate()
+	if !errors.Is(err, mail.ErrInvalidRecipient) {
+		t.Fatalf("Validate() error = %v, want %v", err, mail.ErrInvalidRecipient)
 	}
 }

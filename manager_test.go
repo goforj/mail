@@ -68,6 +68,41 @@ func TestBuilderSendRequiresMailer(t *testing.T) {
 	}
 }
 
+func TestMailerSendReturnsValidationErrorAfterDefaults(t *testing.T) {
+	fake := mailfake.New()
+	mailer := mail.New(
+		fake,
+		mail.WithDefaultFrom("no-reply@example.com", "Example"),
+		mail.WithDefaultMetadata("env", "test"),
+	)
+
+	err := mailer.Send(context.Background(), mail.Message{
+		Subject: "Welcome",
+		Text:    "hello world",
+	})
+	if !errors.Is(err, mail.ErrMissingRecipient) {
+		t.Fatalf("Send() error = %v, want %v", err, mail.ErrMissingRecipient)
+	}
+}
+
+func TestMailerApplyDefaultsCreatesMetadataMap(t *testing.T) {
+	msg, err := mail.New(
+		mailfake.New(),
+		mail.WithDefaultFrom("no-reply@example.com", "Example"),
+		mail.WithDefaultMetadata("env", "test"),
+	).Message().
+		To("alice@example.com", "Alice").
+		Subject("Welcome").
+		Text("hello world").
+		Build()
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	if got, want := msg.Metadata["env"], "test"; got != want {
+		t.Fatalf("metadata = %q, want %q", got, want)
+	}
+}
+
 func TestMessageValidation(t *testing.T) {
 	message := mail.Message{
 		To:      []mail.Recipient{{Email: "alice@example.com"}},
