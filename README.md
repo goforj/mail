@@ -17,6 +17,7 @@
 <img src="https://img.shields.io/badge/unit_tests-65-brightgreen" alt="Unit tests (executed count)">
 <!-- test-count:embed:end -->
 <!-- package-coverage:embed:start -->
+<br>
 <img src="https://img.shields.io/badge/mail-94.8%25-4c9a2a" alt="mail coverage">
 <img src="https://img.shields.io/badge/mailfake-100.0%25-4c9a2a" alt="mailfake coverage">
 <img src="https://img.shields.io/badge/maillog-94.7%25-4c9a2a" alt="maillog coverage">

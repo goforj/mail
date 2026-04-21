@@ -245,7 +245,7 @@ func renderPackageCoverageBadges(items []packageCoverage) string {
 		}
 		lines = append(lines, fmt.Sprintf(`<img src="https://img.shields.io/badge/%s-%.1f%%25-4c9a2a" alt="%s coverage">`, badgeLabel(item.Name), percent, item.Name))
 	}
-	return strings.Join(lines, "\n")
+	return "<br>\n" + strings.Join(lines, "\n")
 }
 
 func badgeLabel(name string) string {
