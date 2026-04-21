@@ -14,11 +14,11 @@
   <a href="https://goreportcard.com/report/github.com/goforj/mail"><img src="https://goreportcard.com/badge/github.com/goforj/mail" alt="Go Report Card"></a>
   <a href="https://codecov.io/gh/goforj/mail"><img src="https://codecov.io/gh/goforj/mail/graph/badge.svg?token=PJJVA66P5X" alt="Codecov"></a>
 <!-- test-count:embed:start -->
-<img src="https://img.shields.io/badge/unit_tests-68-brightgreen" alt="Unit tests (executed count)">
+<img src="https://img.shields.io/badge/unit_tests-80-brightgreen" alt="Unit tests (executed count)">
 <!-- test-count:embed:end -->
 <!-- package-coverage:embed:start -->
 <br>
-<img src="https://img.shields.io/badge/mail-94.8%25-4c9a2a" alt="mail coverage">
+<img src="https://img.shields.io/badge/mail-100.0%25-4c9a2a" alt="mail coverage">
 <img src="https://img.shields.io/badge/mailfake-100.0%25-4c9a2a" alt="mailfake coverage">
 <img src="https://img.shields.io/badge/maillog-94.7%25-4c9a2a" alt="maillog coverage">
 <img src="https://img.shields.io/badge/mailmailgun-84.2%25-4c9a2a" alt="mailmailgun coverage">
@@ -26,7 +26,7 @@
 <img src="https://img.shields.io/badge/mailresend-95.5%25-4c9a2a" alt="mailresend coverage">
 <img src="https://img.shields.io/badge/mailsendgrid-97.5%25-4c9a2a" alt="mailsendgrid coverage">
 <img src="https://img.shields.io/badge/mailses-92.7%25-4c9a2a" alt="mailses coverage">
-<img src="https://img.shields.io/badge/mailsmtp-85.6%25-4c9a2a" alt="mailsmtp coverage">
+<img src="https://img.shields.io/badge/mailsmtp-87.8%25-4c9a2a" alt="mailsmtp coverage">
 <!-- package-coverage:embed:end -->
 </p>
 
