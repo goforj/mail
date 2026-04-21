@@ -28,7 +28,18 @@ type smtpCapture struct {
 	mailFrom   string
 	recipients []string
 	data       string
+	failAuth   bool
+	failMail   bool
+	failRCPT   bool
+	failData   bool
 }
+
+var (
+	sharedTLSOnce   sync.Once
+	sharedTLSConfig *tls.Config
+	sharedTLSCAPath string
+	sharedTLSErr    error
+)
 
 func (c *smtpCapture) setMailFrom(value string) {
 	c.mu.Lock()
@@ -92,7 +103,7 @@ func TestDriverSendOverPlainSMTP(t *testing.T) {
 
 func TestDriverSendOverImplicitTLS(t *testing.T) {
 	capture := &smtpCapture{}
-	tlsConfig, caPath := testTLSConfig(t)
+	tlsConfig, caPath := sharedTestTLSConfig(t)
 	previous := os.Getenv("SSL_CERT_FILE")
 	if err := os.Setenv("SSL_CERT_FILE", caPath); err != nil {
 		t.Fatalf("set SSL_CERT_FILE: %v", err)
@@ -136,6 +147,61 @@ func TestDriverSendOverImplicitTLS(t *testing.T) {
 	}
 	if !strings.Contains(capture.data, "hello over tls") {
 		t.Fatalf("smtp data = %q", capture.data)
+	}
+}
+
+func TestDriverSendOverImplicitTLSFailures(t *testing.T) {
+	tlsConfig, caPath := sharedTestTLSConfig(t)
+	previous := os.Getenv("SSL_CERT_FILE")
+	if err := os.Setenv("SSL_CERT_FILE", caPath); err != nil {
+		t.Fatalf("set SSL_CERT_FILE: %v", err)
+	}
+	t.Cleanup(func() {
+		if previous == "" {
+			_ = os.Unsetenv("SSL_CERT_FILE")
+			return
+		}
+		_ = os.Setenv("SSL_CERT_FILE", previous)
+	})
+
+	tests := []struct {
+		name string
+		set  func(*smtpCapture)
+		want string
+	}{
+		{name: "auth", set: func(c *smtpCapture) { c.failAuth = true }, want: "535"},
+		{name: "mail", set: func(c *smtpCapture) { c.failMail = true }, want: "550"},
+		{name: "rcpt", set: func(c *smtpCapture) { c.failRCPT = true }, want: "550"},
+		{name: "data", set: func(c *smtpCapture) { c.failData = true }, want: "554"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			capture := &smtpCapture{}
+			tt.set(capture)
+			addr := startSMTPServer(t, capture, tlsConfig)
+
+			driver, err := mailsmtp.New(mailsmtp.Config{
+				Host:     "localhost",
+				Port:     addr.Port,
+				Username: "user",
+				Password: "pass",
+				ForceTLS: true,
+			})
+			if err != nil {
+				t.Fatalf("New() error = %v", err)
+			}
+
+			err = driver.Send(context.Background(), mail.Message{
+				From:    &mail.Recipient{Email: "no-reply@example.com"},
+				To:      []mail.Recipient{{Email: "alice@example.com"}},
+				Subject: "Welcome",
+				Text:    "hello over tls",
+			})
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("Send() error = %v, want substring %q", err, tt.want)
+			}
+		})
 	}
 }
 
@@ -184,14 +250,30 @@ func startSMTPServer(t *testing.T, capture *smtpCapture, tlsConfig *tls.Config) 
 					writeLine("250 localhost")
 				}
 			case strings.HasPrefix(line, "AUTH PLAIN"):
+				if capture.failAuth {
+					writeLine("535 auth failed")
+					return
+				}
 				writeLine("235 authenticated")
 			case strings.HasPrefix(line, "MAIL "):
+				if capture.failMail {
+					writeLine("550 mail from rejected")
+					return
+				}
 				capture.setMailFrom(strings.TrimPrefix(line, "MAIL "))
 				writeLine("250 ok")
 			case strings.HasPrefix(line, "RCPT "):
+				if capture.failRCPT {
+					writeLine("550 rcpt rejected")
+					return
+				}
 				capture.addRecipient(strings.TrimPrefix(line, "RCPT "))
 				writeLine("250 ok")
 			case line == "DATA":
+				if capture.failData {
+					writeLine("554 data rejected")
+					return
+				}
 				writeLine("354 end data with <CR><LF>.<CR><LF>")
 				var data strings.Builder
 				for {
@@ -273,4 +355,15 @@ func testTLSConfig(t *testing.T) (*tls.Config, string) {
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
 	}, caPath
+}
+
+func sharedTestTLSConfig(t *testing.T) (*tls.Config, string) {
+	t.Helper()
+	sharedTLSOnce.Do(func() {
+		sharedTLSConfig, sharedTLSCAPath = testTLSConfig(t)
+	})
+	if sharedTLSErr != nil {
+		t.Fatal(sharedTLSErr)
+	}
+	return sharedTLSConfig, sharedTLSCAPath
 }
