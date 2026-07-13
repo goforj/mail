@@ -342,7 +342,7 @@ func renderAPI(funcs []*FuncDoc) string {
 		for _, fn := range items {
 			links = append(links, fmt.Sprintf("[%s](#%s)", fn.DisplayName, fn.Anchor))
 		}
-		buf.WriteString(fmt.Sprintf("| **%s** | %s |\n", group, strings.Join(links, " ")))
+		buf.WriteString(fmt.Sprintf("| **%s** | %s |\n", group, strings.Join(links, " · ")))
 	}
 
 	buf.WriteString("\n\n")
