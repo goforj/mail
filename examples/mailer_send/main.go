@@ -7,6 +7,7 @@ import (
 	"github.com/goforj/mail/mailfake"
 )
 
+// main keeps this example executable so API drift fails during compilation.
 func main() {
 	mailer := mail.New(mailfake.New(), mail.WithDefaultFrom("no-reply@example.com", "Example"))
 	err := mailer.Send(context.Background(), mail.Message{

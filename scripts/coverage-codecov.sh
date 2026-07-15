@@ -5,17 +5,24 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 OUTPUT_FILE="${COVERAGE_OUTPUT:-coverage.txt}"
-TMP_ROOT="${COVERAGE_TMP_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/mail-coverage.XXXXXX")}"
-DEFAULT_GOCACHE="$(go env GOCACHE)"
-DEFAULT_GOMODCACHE="$(go env GOMODCACHE)"
-GOCACHE_DIR="${GOCACHE_DIR:-$DEFAULT_GOCACHE}"
-GOMODCACHE_DIR="${GOMODCACHE_DIR:-$DEFAULT_GOMODCACHE}"
+if [[ -n "${COVERAGE_TMP_DIR:-}" ]]; then
+  mkdir -p "$COVERAGE_TMP_DIR"
+  TMP_ROOT="$(mktemp -d "$COVERAGE_TMP_DIR/mail-coverage.XXXXXX")"
+else
+  TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/mail-coverage.XXXXXX")"
+fi
+GOCACHE_DIR="${GOCACHE_DIR:-${GOCACHE:-/tmp/gocache}}"
+GOMODCACHE_DIR="${GOMODCACHE_DIR:-${GOMODCACHE:-/tmp/gomodcache}}"
+
+cleanup() {
+  rm -rf "$TMP_ROOT"
+}
+trap cleanup EXIT
 
 ROOT_COVER_DIR="$TMP_ROOT/root"
 SES_COVER_DIR="$TMP_ROOT/mailses"
 MERGED_DIR="$TMP_ROOT/merged"
 
-rm -rf "$TMP_ROOT"
 mkdir -p "$ROOT_COVER_DIR" "$SES_COVER_DIR" "$MERGED_DIR" "$GOCACHE_DIR" "$GOMODCACHE_DIR"
 
 echo "==> Root module coverage"

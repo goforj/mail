@@ -6,6 +6,7 @@ import (
 	"github.com/goforj/mail/mailses"
 )
 
+// ExampleNew demonstrates constructing an SES driver with an injected client.
 func ExampleNew() {
 	driver, _ := mailses.New(mailses.Config{
 		Region:          "us-east-1",

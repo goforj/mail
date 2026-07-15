@@ -6,8 +6,10 @@ import (
 	"github.com/goforj/mail/mailfake"
 )
 
+// main keeps this example executable so API drift fails during compilation.
 func main() {
 	msg, _ := mail.New(mailfake.New()).Message().
+		From("no-reply@example.com", "Example").
 		To("alice@example.com", "Alice").
 		ReplyTo("support@example.com", "Support").
 		Subject("Welcome").

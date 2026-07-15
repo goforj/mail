@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
-	sestypes "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/goforj/mail"
+	"github.com/goforj/mail/internal/mailhttp"
 	"github.com/goforj/mail/mailsmtp"
 )
 
@@ -51,42 +53,60 @@ type Driver struct {
 //	})
 //	fmt.Println(driver != nil)
 //	// true
-func New(config Config) (*Driver, error) {
-	region := strings.TrimSpace(config.Region)
+func New(settings Config) (*Driver, error) {
+	region := strings.TrimSpace(settings.Region)
 	if region == "" {
 		return nil, fmt.Errorf("mailses: region is required")
 	}
 
-	loadOptions := []func(*awsconfig.LoadOptions) error{
-		awsconfig.WithRegion(region),
+	accessKeyID := strings.TrimSpace(settings.AccessKeyID)
+	secretAccessKey := strings.TrimSpace(settings.SecretAccessKey)
+	if (accessKeyID == "") != (secretAccessKey == "") {
+		return nil, fmt.Errorf("mailses: access key id and secret access key must be provided together")
 	}
-	if config.HTTPClient != nil {
-		loadOptions = append(loadOptions, awsconfig.WithHTTPClient(config.HTTPClient))
+	if accessKeyID == "" && strings.TrimSpace(settings.SessionToken) != "" {
+		return nil, fmt.Errorf("mailses: session token requires static credentials")
 	}
-	if strings.TrimSpace(config.AccessKeyID) != "" || strings.TrimSpace(config.SecretAccessKey) != "" || strings.TrimSpace(config.SessionToken) != "" {
-		loadOptions = append(loadOptions, awsconfig.WithCredentialsProvider(
-			credentials.NewStaticCredentialsProvider(config.AccessKeyID, config.SecretAccessKey, config.SessionToken),
+	endpoint := strings.TrimSpace(settings.Endpoint)
+	if endpoint != "" {
+		var err error
+		endpoint, err = mailhttp.Endpoint("mailses", endpoint, "")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	loadOptions := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+	}
+	if settings.HTTPClient != nil {
+		loadOptions = append(loadOptions, config.WithHTTPClient(settings.HTTPClient))
+	}
+	if accessKeyID != "" {
+		loadOptions = append(loadOptions, config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, settings.SessionToken),
 		))
 	}
 
-	cfg, err := awsconfig.LoadDefaultConfig(context.Background(), loadOptions...)
+	cfg, err := config.LoadDefaultConfig(context.Background(), loadOptions...)
 	if err != nil {
 		return nil, err
 	}
 
 	client := sesv2.NewFromConfig(cfg, func(o *sesv2.Options) {
-		if endpoint := strings.TrimSpace(config.Endpoint); endpoint != "" {
+		if endpoint != "" {
 			o.BaseEndpoint = aws.String(endpoint)
 		}
 	})
 
-	return newWithClient(client, config), nil
+	return newWithClient(client, settings), nil
 }
 
-func newWithClient(client sendAPI, config Config) *Driver {
+// newWithClient isolates SDK construction from the provider contract exercised by tests.
+func newWithClient(client sendAPI, settings Config) *Driver {
 	return &Driver{
 		client:               client,
-		configurationSetName: strings.TrimSpace(config.ConfigurationSetName),
+		configurationSetName: strings.TrimSpace(settings.ConfigurationSetName),
 	}
 }
 
@@ -110,6 +130,9 @@ func newWithClient(client sendAPI, config Config) *Driver {
 //	fmt.Println(err == nil)
 //	// false
 func (d *Driver) Send(ctx context.Context, message mail.Message) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -123,8 +146,8 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	}
 
 	input := &sesv2.SendEmailInput{
-		Content: &sestypes.EmailContent{
-			Raw: &sestypes.RawMessage{
+		Content: &types.EmailContent{
+			Raw: &types.RawMessage{
 				Data: raw,
 			},
 		},
@@ -138,29 +161,52 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	return err
 }
 
-func buildTags(tags []string, metadata map[string]string) []sestypes.MessageTag {
-	out := make([]sestypes.MessageTag, 0, len(tags)+len(metadata))
-	for key, value := range metadata {
+// buildTags produces deterministic, uniquely named SES message tags.
+func buildTags(tags []string, metadata map[string]string) []types.MessageTag {
+	out := make([]types.MessageTag, 0, len(tags)+len(metadata))
+	usedNames := make(map[string]struct{}, len(tags)+len(metadata))
+	keys := make([]string, 0, len(metadata))
+	for key := range metadata {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		value := metadata[key]
 		name := sanitizeTagToken(key, 256)
 		tagValue := sanitizeTagToken(value, 256)
 		if name == "" || tagValue == "" {
 			continue
 		}
-		out = append(out, sestypes.MessageTag{Name: aws.String(name), Value: aws.String(tagValue)})
+		if _, exists := usedNames[name]; exists {
+			continue
+		}
+		usedNames[name] = struct{}{}
+		out = append(out, types.MessageTag{Name: aws.String(name), Value: aws.String(tagValue)})
 	}
-	for i, value := range tags {
+	nextTagIndex := 1
+	for _, value := range tags {
 		tagValue := sanitizeTagToken(value, 256)
 		if tagValue == "" {
 			continue
 		}
-		out = append(out, sestypes.MessageTag{
-			Name:  aws.String("tag_" + strconv.Itoa(i+1)),
+		name := ""
+		for {
+			name = "tag_" + strconv.Itoa(nextTagIndex)
+			nextTagIndex++
+			if _, exists := usedNames[name]; !exists {
+				break
+			}
+		}
+		usedNames[name] = struct{}{}
+		out = append(out, types.MessageTag{
+			Name:  aws.String(name),
 			Value: aws.String(tagValue),
 		})
 	}
 	return out
 }
 
+// sanitizeTagToken limits values to SES's portable ASCII tag subset.
 func sanitizeTagToken(value string, max int) string {
 	if max <= 0 {
 		return ""

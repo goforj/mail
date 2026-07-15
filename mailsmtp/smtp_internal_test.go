@@ -3,6 +3,7 @@ package mailsmtp
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/goforj/mail"
 )
 
+// TestNewDefaultsAndValidation ensures SMTP construction applies secure defaults and rejects incomplete transport settings.
 func TestNewDefaultsAndValidation(t *testing.T) {
 	driver, err := New(Config{
 		Host: " smtp.example.com ",
@@ -23,6 +25,15 @@ func TestNewDefaultsAndValidation(t *testing.T) {
 	}
 	if got, want := driver.port, 25; got != want {
 		t.Fatalf("port = %d, want %d", got, want)
+	}
+	if got, want := driver.tls.ServerName, "smtp.example.com"; got != want {
+		t.Fatalf("TLS ServerName = %q, want %q", got, want)
+	}
+	if got, want := driver.tls.MinVersion, uint16(tls.VersionTLS12); got != want {
+		t.Fatalf("TLS MinVersion = %d, want %d", got, want)
+	}
+	if driver.tls.InsecureSkipVerify {
+		t.Fatal("TLS verification should be enabled by default")
 	}
 
 	driver, err = New(Config{
@@ -49,8 +60,27 @@ func TestNewDefaultsAndValidation(t *testing.T) {
 	if _, err := New(Config{}); err == nil {
 		t.Fatal("New() should reject an empty host")
 	}
+	for _, port := range []int{-1, 65536} {
+		if _, err := New(Config{Host: "smtp.example.com", Port: port}); err == nil {
+			t.Fatalf("New() should reject port %d", port)
+		}
+	}
+
+	customTLS := &tls.Config{ServerName: "mail.internal", MinVersion: tls.VersionTLS13}
+	driver, err = New(Config{Host: "smtp.example.com", TLSConfig: customTLS})
+	if err != nil {
+		t.Fatalf("New(custom TLS) error = %v", err)
+	}
+	if driver.tls == customTLS {
+		t.Fatal("New() should clone caller TLS config")
+	}
+	customTLS.ServerName = "mutated.example.com"
+	if got, want := driver.tls.ServerName, "mail.internal"; got != want {
+		t.Fatalf("cloned TLS ServerName = %q, want %q", got, want)
+	}
 }
 
+// TestDriverSendEarlyReturns ensures invalid messages and canceled contexts fail before dialing SMTP.
 func TestDriverSendEarlyReturns(t *testing.T) {
 	driver, err := New(Config{Host: "smtp.example.com"})
 	if err != nil {
@@ -64,6 +94,7 @@ func TestDriverSendEarlyReturns(t *testing.T) {
 	}
 
 	err = driver.Send(context.Background(), mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
 		Subject: "Welcome",
 		Text:    "hello world",
 	})
@@ -72,6 +103,7 @@ func TestDriverSendEarlyReturns(t *testing.T) {
 	}
 }
 
+// TestAuthRenderHelpersAndRecipients ensures authentication, envelope recipients, and MIME helpers preserve their separate responsibilities.
 func TestAuthRenderHelpersAndRecipients(t *testing.T) {
 	driver, err := New(Config{Host: "smtp.example.com"})
 	if err != nil {
@@ -89,25 +121,28 @@ func TestAuthRenderHelpersAndRecipients(t *testing.T) {
 		t.Fatal("auth() should return smtp auth when credentials exist")
 	}
 
-	body, contentType, err := renderInlineBody("hello text", "")
+	part, err := renderInlineBody("hello text", "")
 	if err != nil {
 		t.Fatalf("renderInlineBody(text): %v", err)
 	}
-	if got, want := string(body), "hello text"; got != want {
+	if got, want := string(part.data), "hello text"; got != want {
 		t.Fatalf("body = %q, want %q", got, want)
 	}
-	if got, want := contentType, `text/plain; charset="utf-8"`; got != want {
+	if got, want := part.contentType, `text/plain; charset="utf-8"`; got != want {
 		t.Fatalf("content type = %q, want %q", got, want)
 	}
+	if got, want := part.transferEncoding, "quoted-printable"; got != want {
+		t.Fatalf("transfer encoding = %q, want %q", got, want)
+	}
 
-	body, contentType, err = renderInlineBody("", "<p>hello</p>")
+	part, err = renderInlineBody("", "<p>hello</p>")
 	if err != nil {
 		t.Fatalf("renderInlineBody(html): %v", err)
 	}
-	if got, want := string(body), "<p>hello</p>"; got != want {
+	if got, want := string(part.data), "<p>hello</p>"; got != want {
 		t.Fatalf("body = %q, want %q", got, want)
 	}
-	if got, want := contentType, `text/html; charset="utf-8"`; got != want {
+	if got, want := part.contentType, `text/html; charset="utf-8"`; got != want {
 		t.Fatalf("content type = %q, want %q", got, want)
 	}
 
@@ -127,11 +162,9 @@ func TestAuthRenderHelpersAndRecipients(t *testing.T) {
 	if got, want := formatted, `"Alice" <alice@example.com>, bob@example.com`; got != want {
 		t.Fatalf("formatRecipients() = %q, want %q", got, want)
 	}
-	if got, want := escapeHeaderToken(`report "Q1"\draft.txt`), `report \"Q1\"\\draft.txt`; got != want {
-		t.Fatalf("escapeHeaderToken() = %q, want %q", got, want)
-	}
 }
 
+// TestBase64LineWriterWrapsAndCloses ensures attachment encoding obeys MIME line limits and flushes its tail.
 func TestBase64LineWriterWrapsAndCloses(t *testing.T) {
 	var out bytes.Buffer
 	writer := newBase64LineWriter(&out)
@@ -166,6 +199,7 @@ func TestBase64LineWriterWrapsAndCloses(t *testing.T) {
 	}
 }
 
+// TestBase64LineWriterPropagatesTargetErrors ensures MIME encoding cannot hide downstream write failures.
 func TestBase64LineWriterPropagatesTargetErrors(t *testing.T) {
 	writeErr := errors.New("write failed")
 	writer := newBase64LineWriter(errWriter{err: writeErr})
@@ -183,19 +217,20 @@ func TestBase64LineWriterPropagatesTargetErrors(t *testing.T) {
 	}
 }
 
+// TestRenderBodyVariants ensures text, HTML, and attachment combinations select valid MIME structures.
 func TestRenderBodyVariants(t *testing.T) {
-	body, contentType, err := renderBody(mail.Message{HTML: "<p>hello</p>"})
+	part, err := renderBody(mail.Message{HTML: "<p>hello</p>"})
 	if err != nil {
 		t.Fatalf("renderBody(html): %v", err)
 	}
-	if got, want := string(body), "<p>hello</p>"; got != want {
+	if got, want := string(part.data), "<p>hello</p>"; got != want {
 		t.Fatalf("body = %q, want %q", got, want)
 	}
-	if got, want := contentType, `text/html; charset="utf-8"`; got != want {
+	if got, want := part.contentType, `text/html; charset="utf-8"`; got != want {
 		t.Fatalf("content type = %q, want %q", got, want)
 	}
 
-	body, contentType, err = renderBody(mail.Message{
+	part, err = renderBody(mail.Message{
 		Text: "hello text",
 		HTML: "<p>hello</p>",
 		Attachments: []mail.Attachment{
@@ -205,23 +240,25 @@ func TestRenderBodyVariants(t *testing.T) {
 	if err != nil {
 		t.Fatalf("renderBody(attachment): %v", err)
 	}
-	rendered := string(body)
+	rendered := string(part.data)
 	for _, expected := range []string{
-		`multipart/alternative; boundary="`,
-		`Content-Disposition: attachment; filename="report.txt"`,
+		`multipart/alternative; boundary=`,
+		`Content-Disposition: attachment; filename=report.txt`,
 		`YXR0YWNobWVudCBib2R5`,
 	} {
 		if !strings.Contains(rendered, expected) {
 			t.Fatalf("expected %q in rendered body\n%s", expected, rendered)
 		}
 	}
-	if !strings.HasPrefix(contentType, `multipart/mixed; boundary="`) {
-		t.Fatalf("content type = %q", contentType)
+	if !strings.HasPrefix(part.contentType, `multipart/mixed; boundary=`) {
+		t.Fatalf("content type = %q", part.contentType)
 	}
 }
 
+// TestRenderRejectsInvalidMessage ensures malformed messages fail before any SMTP bytes are produced.
 func TestRenderRejectsInvalidMessage(t *testing.T) {
 	_, err := Render(mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
 		Subject: "Welcome",
 		Text:    "hello world",
 	})
@@ -234,6 +271,7 @@ type errWriter struct {
 	err error
 }
 
+// Write injects the configured output failure into MIME rendering tests.
 func (w errWriter) Write([]byte) (int, error) {
 	return 0, w.err
 }

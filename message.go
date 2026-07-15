@@ -12,10 +12,14 @@ import (
 var (
 	// ErrMissingMailer indicates that no driver is configured for the attempted send.
 	ErrMissingMailer = errors.New("mail: missing mailer")
+	// ErrMissingFrom indicates that a message has no sender.
+	ErrMissingFrom = errors.New("mail: from recipient is required")
 	// ErrMissingRecipient indicates that a message has no to, cc, or bcc recipients.
 	ErrMissingRecipient = errors.New("mail: at least one recipient is required")
 	// ErrMissingSubject indicates that a message has no subject.
 	ErrMissingSubject = errors.New("mail: subject is required")
+	// ErrInvalidSubject indicates that a subject contains characters that are unsafe in a mail header.
+	ErrInvalidSubject = errors.New("mail: invalid subject")
 	// ErrMissingBody indicates that a message has neither HTML nor text body content.
 	ErrMissingBody = errors.New("mail: html or text body is required")
 	// ErrInvalidRecipient indicates that one or more recipients are malformed.
@@ -26,8 +30,16 @@ var (
 	ErrInvalidReplyTo = errors.New("mail: invalid reply-to recipient")
 	// ErrInvalidHeaderName indicates that a header name is empty or malformed.
 	ErrInvalidHeaderName = errors.New("mail: invalid header name")
+	// ErrInvalidHeaderValue indicates that a header value contains prohibited control characters.
+	ErrInvalidHeaderValue = errors.New("mail: invalid header value")
+	// ErrDuplicateHeader indicates that custom headers contain the same name with different casing.
+	ErrDuplicateHeader = errors.New("mail: duplicate header")
+	// ErrReservedHeader indicates that a custom header would replace transport-owned envelope data.
+	ErrReservedHeader = errors.New("mail: reserved header")
 	// ErrInvalidAttachment indicates that an attachment is missing required fields.
 	ErrInvalidAttachment = errors.New("mail: invalid attachment")
+	// ErrInvalidMetadata indicates that a provider metadata key is empty or contains control characters.
+	ErrInvalidMetadata = errors.New("mail: invalid metadata")
 )
 
 // Recipient identifies one email recipient with an optional display name.
@@ -169,10 +181,11 @@ func (m Message) Clone() Message {
 //	fmt.Println(err == nil)
 //	// true
 func (m Message) Validate() error {
-	if m.From != nil {
-		if err := validateRecipient(*m.From); err != nil {
-			return ErrInvalidFrom
-		}
+	if m.From == nil {
+		return ErrMissingFrom
+	}
+	if err := validateRecipient(*m.From); err != nil {
+		return ErrInvalidFrom
 	}
 	for _, recipient := range m.ReplyTo {
 		if err := validateRecipient(recipient); err != nil {
@@ -201,19 +214,45 @@ func (m Message) Validate() error {
 	if strings.TrimSpace(m.Subject) == "" {
 		return ErrMissingSubject
 	}
+	if containsHeaderControl(m.Subject) {
+		return ErrInvalidSubject
+	}
 	if strings.TrimSpace(m.HTML) == "" && strings.TrimSpace(m.Text) == "" {
 		return ErrMissingBody
 	}
-	for name := range m.Headers {
-		if strings.TrimSpace(name) == "" || strings.ContainsAny(name, "\r\n:") {
+	headerNames := make(map[string]struct{}, len(m.Headers))
+	for name, value := range m.Headers {
+		if !validHeaderName(name) {
 			return ErrInvalidHeaderName
+		}
+		identity := strings.ToLower(name)
+		if _, exists := headerNames[identity]; exists {
+			return ErrDuplicateHeader
+		}
+		headerNames[identity] = struct{}{}
+		if reservedHeader(name) {
+			return ErrReservedHeader
+		}
+		if containsHeaderControl(value) {
+			return ErrInvalidHeaderValue
+		}
+	}
+	for key := range m.Metadata {
+		if key == "" || key != strings.TrimSpace(key) || containsHeaderControl(key) {
+			return ErrInvalidMetadata
 		}
 	}
 	for _, attachment := range m.Attachments {
-		if strings.TrimSpace(attachment.Filename) == "" {
+		filename := strings.TrimSpace(attachment.Filename)
+		if filename == "" || containsHeaderControl(filename) {
 			return ErrInvalidAttachment
 		}
-		if strings.TrimSpace(attachment.ContentType) == "" {
+		contentType := strings.TrimSpace(attachment.ContentType)
+		if contentType == "" || containsHeaderControl(contentType) {
+			return ErrInvalidAttachment
+		}
+		mediaType, _, err := mime.ParseMediaType(contentType)
+		if err != nil || strings.TrimSpace(mediaType) == "" {
 			return ErrInvalidAttachment
 		}
 		if attachment.Data == nil {
@@ -223,15 +262,20 @@ func (m Message) Validate() error {
 	return nil
 }
 
+// validateRecipient requires the Email field to contain one bare address because provider APIs model display names separately.
 func validateRecipient(recipient Recipient) error {
 	address := strings.TrimSpace(recipient.Email)
-	if address == "" {
+	if address == "" || containsHeaderControl(recipient.Name) {
 		return ErrInvalidRecipient
 	}
-	_, err := mail.ParseAddress(formatRecipient(Recipient{Email: address, Name: recipient.Name}))
-	return err
+	parsed, err := mail.ParseAddress(address)
+	if err != nil || parsed.Name != "" || parsed.Address != address {
+		return ErrInvalidRecipient
+	}
+	return nil
 }
 
+// formatRecipient delegates display-name quoting and encoded-word handling to the standard library.
 func formatRecipient(recipient Recipient) string {
 	address := strings.TrimSpace(recipient.Email)
 	name := strings.TrimSpace(recipient.Name)
@@ -239,4 +283,37 @@ func formatRecipient(recipient Recipient) string {
 		return address
 	}
 	return (&mail.Address{Name: name, Address: address}).String()
+}
+
+// containsHeaderControl rejects ASCII controls before values reach MIME or multipart encoders.
+func containsHeaderControl(value string) bool {
+	for i := 0; i < len(value); i++ {
+		if value[i] < 32 || value[i] == 127 {
+			return true
+		}
+	}
+	return false
+}
+
+// validHeaderName accepts the printable RFC field-name range while excluding the colon delimiter.
+func validHeaderName(name string) bool {
+	if name == "" || name != strings.TrimSpace(name) {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		if name[i] < 33 || name[i] > 126 || name[i] == ':' {
+			return false
+		}
+	}
+	return true
+}
+
+// reservedHeader keeps the portable envelope authoritative across API and SMTP drivers.
+func reservedHeader(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "bcc", "cc", "content-transfer-encoding", "content-type", "from", "mime-version", "reply-to", "subject", "to":
+		return true
+	default:
+		return false
+	}
 }

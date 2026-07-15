@@ -34,6 +34,7 @@ func (b *MessageBuilder) From(email, name string) *MessageBuilder {
 // Example: reply-to
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
+//		From("no-reply@example.com", "Example").
 //		To("alice@example.com", "Alice").
 //		ReplyTo("support@example.com", "Support").
 //		Subject("Welcome").
@@ -52,6 +53,7 @@ func (b *MessageBuilder) ReplyTo(email, name string) *MessageBuilder {
 // Example: to
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
+//		From("no-reply@example.com", "Example").
 //		To("alice@example.com", "Alice").
 //		Subject("Welcome").
 //		Text("hello world").
@@ -69,6 +71,7 @@ func (b *MessageBuilder) To(email, name string) *MessageBuilder {
 // Example: cc
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
+//		From("no-reply@example.com", "Example").
 //		To("alice@example.com", "Alice").
 //		Cc("manager@example.com", "Manager").
 //		Subject("Welcome").
@@ -87,6 +90,7 @@ func (b *MessageBuilder) Cc(email, name string) *MessageBuilder {
 // Example: bcc
 //
 //	msg, _ := mail.New(mailfake.New()).Message().
+//		From("no-reply@example.com", "Example").
 //		To("alice@example.com", "Alice").
 //		Bcc("audit@example.com", "Audit").
 //		Subject("Welcome").
@@ -156,6 +160,7 @@ func (b *MessageBuilder) Text(value string) *MessageBuilder {
 // Example: header, tag, metadata
 //
 //	message, _ := mail.New(mailfake.New()).Message().
+//		From("no-reply@example.com", "Example").
 //		To("alice@example.com", "Alice").
 //		Subject("Welcome").
 //		Text("hello world").
@@ -238,6 +243,7 @@ func (b *MessageBuilder) Attach(filename, contentType string, data []byte) *Mess
 //	_ = os.WriteFile("report.txt", []byte("hello world"), 0o644)
 //	defer os.Remove("report.txt")
 //	msg, _ := mail.New(mailfake.New()).Message().
+//		From("no-reply@example.com", "Example").
 //		To("alice@example.com", "Alice").
 //		Subject("Welcome").
 //		Text("hello world").

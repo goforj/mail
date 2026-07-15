@@ -11,8 +11,9 @@ import (
 	"github.com/goforj/mail"
 )
 
+// TestAPIErrorAndEarlyBranches ensures SendGrid diagnostics, validation, and cancellation preserve their distinct errors.
 func TestAPIErrorAndEarlyBranches(t *testing.T) {
-	if got := (&apiError{StatusCode: http.StatusBadGateway}).Error(); got != "mailsendgrid: send failed with status 502" {
+	if got := (&ResponseError{StatusCode: http.StatusBadGateway}).Error(); got != "mailsendgrid: send failed with status 502" {
 		t.Fatalf("empty api error = %q", got)
 	}
 
@@ -35,11 +36,12 @@ func TestAPIErrorAndEarlyBranches(t *testing.T) {
 		To:      []mail.Recipient{{Email: "alice@example.com"}},
 		Subject: "Welcome",
 		Text:    "hello world",
-	}); err == nil || !strings.Contains(err.Error(), "from is required") {
+	}); !errors.Is(err, mail.ErrMissingFrom) {
 		t.Fatalf("from error = %v", err)
 	}
 }
 
+// TestDriverSendAdditionalTransportBranches ensures malformed responses and transport failures cannot report delivery success.
 func TestDriverSendAdditionalTransportBranches(t *testing.T) {
 	driver := &Driver{
 		apiKey:   "SG.test_key",
@@ -80,6 +82,7 @@ func TestDriverSendAdditionalTransportBranches(t *testing.T) {
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
+// RoundTrip adapts a closure into an HTTP transport for precise request assertions.
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
@@ -88,6 +91,7 @@ type errReader struct {
 	err error
 }
 
+// Read injects the configured response-body failure into provider error handling.
 func (r errReader) Read([]byte) (int, error) {
 	return 0, r.err
 }

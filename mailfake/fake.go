@@ -10,7 +10,7 @@ import (
 // Driver is an in-memory fake driver for tests and examples.
 // @group Testing
 type Driver struct {
-	mu       sync.Mutex
+	mu       sync.RWMutex
 	messages []mail.Message
 	err      error
 }
@@ -33,20 +33,30 @@ func New() *Driver {
 	return &Driver{}
 }
 
-// Send records the message and returns the configured error when set.
+// Send validates and records the message, returning the configured delivery error when set.
 // @group Testing
 //
 // Example: record a sent message directly
 //
 //	fake := mailfake.New()
 //	_ = fake.Send(context.Background(), mail.Message{
+//		From:    &mail.Recipient{Email: "no-reply@example.com"},
 //		To:      []mail.Recipient{{Email: "alice@example.com"}},
 //		Subject: "Welcome",
 //		Text:    "hello world",
 //	})
 //	fmt.Println(fake.SentCount())
 //	// 1
-func (m *Driver) Send(_ context.Context, message mail.Message) error {
+func (m *Driver) Send(ctx context.Context, message mail.Message) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := message.Validate(); err != nil {
+		return err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.err != nil {
@@ -64,6 +74,7 @@ func (m *Driver) Send(_ context.Context, message mail.Message) error {
 //	fake := mailfake.New()
 //	fake.SetError(errors.New("boom"))
 //	err := fake.Send(context.Background(), mail.Message{
+//		From:    &mail.Recipient{Email: "no-reply@example.com"},
 //		To:      []mail.Recipient{{Email: "alice@example.com"}},
 //		Subject: "Welcome",
 //		Text:    "hello world",
@@ -83,6 +94,7 @@ func (m *Driver) SetError(err error) {
 //
 //	fake := mailfake.New()
 //	_ = fake.Send(context.Background(), mail.Message{
+//		From:    &mail.Recipient{Email: "no-reply@example.com"},
 //		To:      []mail.Recipient{{Email: "alice@example.com"}},
 //		Subject: "Welcome",
 //		Text:    "hello world",
@@ -112,8 +124,8 @@ func (m *Driver) Reset() {
 //	fmt.Println(len(fake.Messages()))
 //	// 1
 func (m *Driver) Messages() []mail.Message {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	out := make([]mail.Message, 0, len(m.messages))
 	for _, message := range m.messages {
 		out = append(out, message.Clone())
@@ -128,6 +140,7 @@ func (m *Driver) Messages() []mail.Message {
 //
 //	fake := mailfake.New()
 //	_ = fake.Send(context.Background(), mail.Message{
+//		From:    &mail.Recipient{Email: "no-reply@example.com"},
 //		To:      []mail.Recipient{{Email: "alice@example.com"}},
 //		Subject: "Welcome",
 //		Text:    "hello world",
@@ -135,8 +148,8 @@ func (m *Driver) Messages() []mail.Message {
 //	fmt.Println(fake.SentCount())
 //	// 1
 func (m *Driver) SentCount() int {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return len(m.messages)
 }
 
@@ -156,8 +169,8 @@ func (m *Driver) SentCount() int {
 //	fmt.Println(last.Subject)
 //	// Welcome
 func (m *Driver) Last() (mail.Message, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if len(m.messages) == 0 {
 		return mail.Message{}, false
 	}

@@ -21,6 +21,7 @@ const (
 	packageCoverEnd   = "<!-- package-coverage:embed:end -->"
 )
 
+// main renders the reproducible documentation artifacts for this module.
 func main() {
 	if err := run(); err != nil {
 		fmt.Println("Error:", err)
@@ -29,6 +30,7 @@ func main() {
 	fmt.Println("✔ Test badges and package coverage updated in README.md")
 }
 
+// run refreshes only the marked test and coverage badges from live repository results.
 func run() error {
 	root, err := findRoot()
 	if err != nil {
@@ -68,6 +70,7 @@ type packageCoverage struct {
 	Total   int
 }
 
+// findRoot anchors badge generation to the library checkout from any docs working directory.
 func findRoot() (string, error) {
 	wd, _ := os.Getwd()
 	for _, c := range []string{wd, filepath.Join(wd, ".."), filepath.Join(wd, "..", ".."), filepath.Join(wd, "..", "..", "..")} {
@@ -79,11 +82,13 @@ func findRoot() (string, error) {
 	return "", fmt.Errorf("could not find project root")
 }
 
+// fileExists lets root discovery ignore candidate paths that are not present.
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
+// countRunEvents counts executed test events rather than source declarations so subtests are represented accurately.
 func countRunEvents(root string) (int, error) {
 	cmd := exec.Command("go", "test", "./...", "-run", "Test|Example", "-count=1", "-json")
 	cmd.Dir = root
@@ -117,6 +122,7 @@ func countRunEvents(root string) (int, error) {
 	return total, nil
 }
 
+// collectPackageCoverage aggregates statement counts from the same merged profile used by CI.
 func collectPackageCoverage(root string) ([]packageCoverage, error) {
 	coverFile := filepath.Join(root, "coverage.txt")
 	cmd := exec.Command("bash", "scripts/coverage-codecov.sh")
@@ -195,6 +201,7 @@ func collectPackageCoverage(root string) ([]packageCoverage, error) {
 	return outCov, nil
 }
 
+// packageLabelForCoverageFile maps profile import paths into stable user-facing package labels.
 func packageLabelForCoverageFile(file string) string {
 	const (
 		rootPrefix = "github.com/goforj/mail/"
@@ -230,12 +237,14 @@ func packageLabelForCoverageFile(file string) string {
 	}
 }
 
+// renderBadges encodes the executed test count in reproducible shields markup.
 func renderBadges(unitCount int) string {
 	return strings.Join([]string{
 		fmt.Sprintf(`<img src="https://img.shields.io/badge/unit_tests-%d-brightgreen" alt="Unit tests (executed count)">`, unitCount),
 	}, "\n")
 }
 
+// renderPackageCoverageBadges preserves package order while deriving percentages from statement totals.
 func renderPackageCoverageBadges(items []packageCoverage) string {
 	lines := make([]string, 0, len(items))
 	for _, item := range items {
@@ -248,6 +257,7 @@ func renderPackageCoverageBadges(items []packageCoverage) string {
 	return "<br>\n" + strings.Join(lines, "\n")
 }
 
+// badgeLabel escapes path separators and spaces for predictable shields labels.
 func badgeLabel(name string) string {
 	replacer := strings.NewReplacer(
 		"/", "--",
@@ -256,6 +266,7 @@ func badgeLabel(name string) string {
 	return replacer.Replace(name)
 }
 
+// replaceSection confines generated writes to an explicit marker pair and rejects malformed README structure.
 func replaceSection(input, start, end, replacement string) (string, error) {
 	si := strings.Index(input, start)
 	ei := strings.Index(input, end)

@@ -7,10 +7,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
-	sestypes "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/goforj/mail"
 )
 
+// TestDriverSendEarlyBranchesAndStubError ensures validation, cancellation, and client failures stop SES delivery cleanly.
 func TestDriverSendEarlyBranchesAndStubError(t *testing.T) {
 	client := &stubClient{err: errors.New("boom")}
 	driver := newWithClient(client, Config{})
@@ -40,6 +41,7 @@ func TestDriverSendEarlyBranchesAndStubError(t *testing.T) {
 	}
 }
 
+// TestBuildTagsSkipsInvalidValues ensures unsupported SES tag data cannot corrupt a request.
 func TestBuildTagsSkipsInvalidValues(t *testing.T) {
 	got := buildTags(
 		[]string{"hello world", "___"},
@@ -51,7 +53,7 @@ func TestBuildTagsSkipsInvalidValues(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("tag count = %d, want 2", len(got))
 	}
-	assert := func(tag sestypes.MessageTag, name, value string) {
+	assert := func(tag types.MessageTag, name, value string) {
 		if tag.Name == nil || *tag.Name != name || tag.Value == nil || *tag.Value != value {
 			t.Fatalf("tag = %#v, want %s=%s", tag, name, value)
 		}
@@ -64,6 +66,28 @@ func TestBuildTagsSkipsInvalidValues(t *testing.T) {
 	}
 }
 
+// TestBuildTagsSortsMetadataAndAvoidsNameCollisions ensures SES tags are deterministic and retain distinct metadata keys.
+func TestBuildTagsSortsMetadataAndAvoidsNameCollisions(t *testing.T) {
+	got := buildTags(
+		[]string{"welcome"},
+		map[string]string{
+			"z_key": "last",
+			"a_key": "first",
+			"tag_1": "reserved",
+		},
+	)
+	if len(got) != 4 {
+		t.Fatalf("tag count = %d, want 4", len(got))
+	}
+	if got[0].Name == nil || *got[0].Name != "a_key" {
+		t.Fatalf("first tag = %#v, want a_key", got[0])
+	}
+	if got[3].Name == nil || *got[3].Name != "tag_2" {
+		t.Fatalf("message tag = %#v, want collision-free tag_2", got[3])
+	}
+}
+
+// TestNewWithClientTrimsConfigurationSet ensures optional SES configuration names use canonical whitespace.
 func TestNewWithClientTrimsConfigurationSet(t *testing.T) {
 	driver := newWithClient(&stubClient{}, Config{ConfigurationSetName: "  transactional  "})
 	if driver.configurationSetName != "transactional" {
@@ -71,10 +95,11 @@ func TestNewWithClientTrimsConfigurationSet(t *testing.T) {
 	}
 }
 
+// TestStubClientReturnsMessageID ensures injected SES clients can drive deterministic response handling.
 func TestStubClientReturnsMessageID(t *testing.T) {
 	client := &stubClient{}
 	out, err := client.SendEmail(context.Background(), &sesv2.SendEmailInput{
-		Content: &sestypes.EmailContent{Raw: &sestypes.RawMessage{Data: []byte("raw")}},
+		Content: &types.EmailContent{Raw: &types.RawMessage{Data: []byte("raw")}},
 	})
 	if err != nil {
 		t.Fatalf("SendEmail() error = %v", err)

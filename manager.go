@@ -2,6 +2,8 @@ package mail
 
 import (
 	"context"
+	"reflect"
+	"strings"
 )
 
 // Driver delivers one validated message through a concrete backend.
@@ -22,6 +24,7 @@ type Mailer struct {
 type Option func(*Mailer)
 
 // New creates a Mailer backed by the provided driver.
+// New panics when driver is nil because a Mailer cannot deliver without its required collaborator.
 // @group Construction
 //
 // Example: with a default from
@@ -31,11 +34,28 @@ type Option func(*Mailer)
 //	fmt.Println(mailer != nil)
 //	// true
 func New(driver Driver, options ...Option) *Mailer {
+	if nilDriver(driver) {
+		panic("mail: driver is required")
+	}
 	mailer := &Mailer{driver: driver}
 	for _, option := range options {
 		option(mailer)
 	}
 	return mailer
+}
+
+// nilDriver detects typed nil implementations so construction fails before the first delivery attempt.
+func nilDriver(driver Driver) bool {
+	if driver == nil {
+		return true
+	}
+	value := reflect.ValueOf(driver)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 // WithDefaultFrom configures the default from recipient applied when a message omits one.
@@ -62,6 +82,7 @@ func WithDefaultFrom(email, name string) Option {
 //
 //	mailer := mail.New(
 //		mailfake.New(),
+//		mail.WithDefaultFrom("no-reply@example.com", "Example"),
 //		mail.WithDefaultReplyTo(mail.Recipient{Email: "support@example.com", Name: "Support"}),
 //	)
 //	msg, _ := mailer.Message().
@@ -84,6 +105,7 @@ func WithDefaultReplyTo(recipients ...Recipient) Option {
 //
 //	msg, _ := mail.New(
 //		mailfake.New(),
+//		mail.WithDefaultFrom("no-reply@example.com", "Example"),
 //		mail.WithDefaultHeader("X-App", "goforj"),
 //	).Message().
 //		To("alice@example.com", "Alice").
@@ -108,6 +130,7 @@ func WithDefaultHeader(key, value string) Option {
 //
 //	msg, _ := mail.New(
 //		mailfake.New(),
+//		mail.WithDefaultFrom("no-reply@example.com", "Example"),
 //		mail.WithDefaultTag("transactional"),
 //	).Message().
 //		To("alice@example.com", "Alice").
@@ -129,6 +152,7 @@ func WithDefaultTag(tag string) Option {
 //
 //	msg, _ := mail.New(
 //		mailfake.New(),
+//		mail.WithDefaultFrom("no-reply@example.com", "Example"),
 //		mail.WithDefaultMetadata("tenant_id", "tenant_123"),
 //	).Message().
 //		To("alice@example.com", "Alice").
@@ -184,6 +208,9 @@ func (m *Mailer) Send(ctx context.Context, msg Message) error {
 	if m.driver == nil {
 		return ErrMissingMailer
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	resolved := m.applyDefaults(msg)
 	if err := resolved.Validate(); err != nil {
 		return err
@@ -191,6 +218,7 @@ func (m *Mailer) Send(ctx context.Context, msg Message) error {
 	return m.driver.Send(ctx, resolved)
 }
 
+// applyDefaults resolves immutable per-mailer defaults into a detached message for safe concurrent sends.
 func (m *Mailer) applyDefaults(msg Message) Message {
 	resolved := msg.Clone()
 	if resolved.From == nil && m.defaults.From != nil {
@@ -205,7 +233,7 @@ func (m *Mailer) applyDefaults(msg Message) Message {
 			resolved.Headers = map[string]string{}
 		}
 		for key, value := range m.defaults.Headers {
-			if _, exists := resolved.Headers[key]; !exists {
+			if !hasHeader(resolved.Headers, key) {
 				resolved.Headers[key] = value
 			}
 		}
@@ -224,4 +252,14 @@ func (m *Mailer) applyDefaults(msg Message) Message {
 		}
 	}
 	return resolved
+}
+
+// hasHeader applies the case-insensitive identity required by mail header names.
+func hasHeader(headers map[string]string, name string) bool {
+	for key := range headers {
+		if strings.EqualFold(strings.TrimSpace(key), strings.TrimSpace(name)) {
+			return true
+		}
+	}
+	return false
 }

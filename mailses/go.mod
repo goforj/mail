@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.16
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.60.3
-	github.com/goforj/mail v0.0.0
+	github.com/goforj/mail v0.3.0
 )
 
 require (
@@ -23,5 +23,3 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.0 // indirect
 	github.com/aws/smithy-go v1.25.0 // indirect
 )
-
-replace github.com/goforj/mail => ..

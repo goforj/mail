@@ -6,6 +6,7 @@ import (
 	"github.com/goforj/mail/mailmailgun"
 )
 
+// ExampleNew demonstrates constructing a Mailgun driver from its configuration.
 func ExampleNew() {
 	driver, _ := mailmailgun.New(mailmailgun.Config{
 		Domain: "mg.example.com",

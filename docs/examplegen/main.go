@@ -15,6 +15,7 @@ import (
 	"strings"
 )
 
+// main renders the reproducible documentation artifacts for this module.
 func main() {
 	if err := run(); err != nil {
 		fmt.Println("Error:", err)
@@ -23,6 +24,7 @@ func main() {
 	fmt.Println("✔ Examples generated in ./examples/")
 }
 
+// run regenerates standalone examples from the documented API in a deterministic order.
 func run() error {
 	root, err := findRoot()
 	if err != nil {
@@ -33,12 +35,20 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	goVersion, err := moduleGoVersion(root)
+	if err != nil {
+		return err
+	}
+	rootReleaseVersion, err := moduleRequirementVersion(filepath.Join(root, "mailses", "go.mod"), modPath)
+	if err != nil {
+		return err
+	}
 
 	examplesDir := filepath.Join(root, "examples")
 	if err := os.MkdirAll(examplesDir, 0o755); err != nil {
 		return err
 	}
-	if err := ensureExamplesModule(examplesDir, modPath); err != nil {
+	if err := ensureExamplesModule(examplesDir, modPath, goVersion, rootReleaseVersion); err != nil {
 		return err
 	}
 
@@ -78,23 +88,60 @@ func run() error {
 	return nil
 }
 
-func ensureExamplesModule(examplesDir, modPath string) error {
+// ensureExamplesModule keeps generated examples aligned with the staged root release without discarding tooling dependencies.
+func ensureExamplesModule(examplesDir, modPath, goVersion, rootReleaseVersion string) error {
+	moduleFile := filepath.Join(examplesDir, "go.mod")
+	if existing, err := os.ReadFile(moduleFile); err == nil {
+		lines := strings.Split(string(existing), "\n")
+		inRequire := false
+		updatedRootRequirement := false
+		for index, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			fields := strings.Fields(trimmed)
+			switch {
+			case strings.HasPrefix(trimmed, "module "):
+				lines[index] = "module " + modPath + "/examples"
+			case strings.HasPrefix(trimmed, "go "):
+				lines[index] = "go " + goVersion
+			case len(fields) >= 3 && fields[0] == "require" && fields[1] == modPath:
+				indent := line[:len(line)-len(strings.TrimLeft(line, " \t"))]
+				lines[index] = indent + "require " + modPath + " " + rootReleaseVersion
+				updatedRootRequirement = true
+			case len(fields) == 2 && fields[0] == "require" && fields[1] == "(":
+				inRequire = true
+			case inRequire && len(fields) == 1 && fields[0] == ")":
+				inRequire = false
+			case inRequire && len(fields) >= 2 && fields[0] == modPath:
+				indent := line[:len(line)-len(strings.TrimLeft(line, " \t"))]
+				lines[index] = indent + modPath + " " + rootReleaseVersion
+				updatedRootRequirement = true
+			}
+		}
+		if !updatedRootRequirement {
+			return fmt.Errorf("root requirement not found in %s", moduleFile)
+		}
+		return os.WriteFile(moduleFile, []byte(strings.Join(lines, "\n")), 0o644)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
 	content := fmt.Sprintf(`module %s/examples
 
-go 1.26.1
+go %s
 
 require (
-	%s v0.0.0
+	%s %s
 	%s/mailses v0.0.0
 )
 
 replace %s => ..
 replace %s/mailses => ../mailses
-`, modPath, modPath, modPath, modPath, modPath)
+`, modPath, goVersion, modPath, rootReleaseVersion, modPath, modPath, modPath)
 
-	return os.WriteFile(filepath.Join(examplesDir, "go.mod"), []byte(content), 0o644)
+	return os.WriteFile(moduleFile, []byte(content), 0o644)
 }
 
+// FuncDoc captures the metadata needed to render one documented function.
 type FuncDoc struct {
 	Name       string
 	Slug       string
@@ -102,12 +149,14 @@ type FuncDoc struct {
 	Examples   []Example
 }
 
+// Example captures an executable snippet and its source location.
 type Example struct {
 	Label string
 	Line  int
 	Code  string
 }
 
+// findRoot anchors generation to the library checkout even when invoked from a docs subdirectory.
 func findRoot() (string, error) {
 	wd, _ := os.Getwd()
 	for _, c := range []string{wd, filepath.Join(wd, ".."), filepath.Join(wd, "..", ".."), filepath.Join(wd, "..", "..", "..")} {
@@ -119,11 +168,13 @@ func findRoot() (string, error) {
 	return "", fmt.Errorf("could not find project root")
 }
 
+// fileExists lets root discovery ignore candidate paths that are not present.
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
+// modulePath reads the canonical import prefix so generated code never hard-codes a checkout identity.
 func modulePath(root string) (string, error) {
 	data, err := os.ReadFile(filepath.Join(root, "go.mod"))
 	if err != nil {
@@ -138,6 +189,45 @@ func modulePath(root string) (string, error) {
 	return "", fmt.Errorf("module path not found in go.mod")
 }
 
+// moduleGoVersion keeps generated examples on the same language baseline as the root module.
+func moduleGoVersion(root string) (string, error) {
+	data, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "go ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "go ")), nil
+		}
+	}
+	return "", fmt.Errorf("go version not found in go.mod")
+}
+
+// moduleRequirementVersion reads a direct requirement from a module file without resolving unavailable staged tags.
+func moduleRequirementVersion(moduleFile, dependencyPath string) (string, error) {
+	data, err := os.ReadFile(moduleFile)
+	if err != nil {
+		return "", err
+	}
+	inRequire := false
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(strings.SplitN(line, "//", 2)[0])
+		switch {
+		case len(fields) == 2 && fields[0] == "require" && fields[1] == "(":
+			inRequire = true
+		case inRequire && len(fields) == 1 && fields[0] == ")":
+			inRequire = false
+		case inRequire && len(fields) >= 2 && fields[0] == dependencyPath:
+			return fields[1], nil
+		case len(fields) >= 3 && fields[0] == "require" && fields[1] == dependencyPath:
+			return fields[2], nil
+		}
+	}
+	return "", fmt.Errorf("requirement for %s not found in %s", dependencyPath, moduleFile)
+}
+
+// collectExamplesFromDir discovers examples only on exported API surfaces that consumers can call.
 func collectExamplesFromDir(out map[string]*FuncDoc, dir, importPath, slugPrefix string) error {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(info os.FileInfo) bool {
@@ -154,9 +244,13 @@ func collectExamplesFromDir(out map[string]*FuncDoc, dir, importPath, slugPrefix
 				if !ok || fn.Doc == nil || !ast.IsExported(fn.Name.Name) {
 					continue
 				}
+				receiverName := extractReceiverName(fn)
+				if receiverName != "" && !ast.IsExported(receiverName) {
+					continue
+				}
 				slug := strings.ToLower(fn.Name.Name)
-				if recv := extractReceiverName(fn); recv != "" {
-					slug = strings.ToLower(recv + "_" + fn.Name.Name)
+				if receiverName != "" {
+					slug = strings.ToLower(receiverName + "_" + fn.Name.Name)
 				}
 				if slugPrefix != "" {
 					slug = slugPrefix + "_" + slug
@@ -181,6 +275,7 @@ func collectExamplesFromDir(out map[string]*FuncDoc, dir, importPath, slugPrefix
 	return nil
 }
 
+// extractReceiverName identifies method ownership so generated slugs remain collision-free across types.
 func extractReceiverName(fn *ast.FuncDecl) string {
 	if fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return ""
@@ -188,6 +283,7 @@ func extractReceiverName(fn *ast.FuncDecl) string {
 	return receiverTypeName(fn.Recv.List[0].Type)
 }
 
+// receiverTypeName unwraps pointer and generic receiver syntax to its declared type name.
 func receiverTypeName(expr ast.Expr) string {
 	switch v := expr.(type) {
 	case *ast.Ident:
@@ -208,6 +304,7 @@ type docLine struct {
 	pos  token.Pos
 }
 
+// extractExamples parses the repository's Example labels while retaining source order for reproducible output.
 func extractExamples(fset *token.FileSet, group *ast.CommentGroup) []Example {
 	var examples []Example
 	lines := make([]docLine, 0, len(group.List))
@@ -259,6 +356,7 @@ func extractExamples(fset *token.FileSet, group *ast.CommentGroup) []Example {
 	return examples
 }
 
+// normalizeIndent removes shared documentation padding without changing relative code indentation.
 func normalizeIndent(lines []string) []string {
 	minIndent := -1
 	for _, line := range lines {
@@ -287,6 +385,7 @@ func normalizeIndent(lines []string) []string {
 	return out
 }
 
+// writeExample renders the first documented case as the canonical executable for an API slug.
 func writeExample(examplesDir string, fd *FuncDoc) error {
 	dir := filepath.Join(examplesDir, fd.Slug)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -305,6 +404,7 @@ func writeExample(examplesDir string, fd *FuncDoc) error {
 		}
 		buf.WriteString(")\n\n")
 	}
+	buf.WriteString("// main keeps this example executable so API drift fails during compilation.\n")
 	buf.WriteString("func main() {\n")
 	for _, line := range strings.Split(example.Code, "\n") {
 		buf.WriteString("\t" + line + "\n")
@@ -314,6 +414,7 @@ func writeExample(examplesDir string, fd *FuncDoc) error {
 	return os.WriteFile(filepath.Join(dir, "main.go"), buf.Bytes(), 0o644)
 }
 
+// inferImports derives a sorted minimal import set so generated examples compile and remain stable.
 func inferImports(code, importPath string) []string {
 	importSet := map[string]bool{}
 	rootImportPath := rootModuleImport(importPath)
@@ -381,6 +482,7 @@ func inferImports(code, importPath string) []string {
 	return imports
 }
 
+// addSubpackageImport reuses the current package path when it already names the requested mail subpackage.
 func addSubpackageImport(importSet map[string]bool, importPath, subpackage string) {
 	if strings.HasSuffix(importPath, "/"+subpackage) {
 		importSet[importPath] = true
@@ -389,6 +491,7 @@ func addSubpackageImport(importSet map[string]bool, importPath, subpackage strin
 	importSet[importPath+"/"+subpackage] = true
 }
 
+// rootModuleImport maps a mail subpackage import back to the module root for shared API references.
 func rootModuleImport(importPath string) string {
 	for _, suffix := range []string{"/mailfake", "/mailmailgun", "/maillog", "/mailpostmark", "/mailresend", "/mailsendgrid", "/mailses", "/mailsmtp"} {
 		if strings.HasSuffix(importPath, suffix) {

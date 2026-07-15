@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// main keeps this example executable so API drift fails during compilation.
 func main() {
 	var out bytes.Buffer
 	mailer := maillog.New(&out, maillog.WithNow(func() time.Time {
