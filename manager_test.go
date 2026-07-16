@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/goforj/mail"
@@ -150,10 +151,10 @@ func TestMessageValidation(t *testing.T) {
 
 // TestBuilderAttachments ensures in-memory and file attachments retain content and metadata.
 func TestBuilderAttachments(t *testing.T) {
-	if err := os.WriteFile("test-attachment.txt", []byte("hello attachment"), 0o644); err != nil {
+	attachmentPath := filepath.Join(t.TempDir(), "test-attachment.txt")
+	if err := os.WriteFile(attachmentPath, []byte("hello attachment"), 0o644); err != nil {
 		t.Fatalf("write temp attachment: %v", err)
 	}
-	defer os.Remove("test-attachment.txt")
 
 	message, err := mail.New(mailfake.New()).
 		Message().
@@ -162,7 +163,7 @@ func TestBuilderAttachments(t *testing.T) {
 		Subject("Welcome").
 		Text("hello world").
 		Attach("inline.txt", "text/plain", []byte("hello inline")).
-		AttachFile("test-attachment.txt").
+		AttachFile(attachmentPath).
 		Build()
 	if err != nil {
 		t.Fatalf("build message with attachments: %v", err)
@@ -181,12 +182,12 @@ func TestBuilderAttachments(t *testing.T) {
 
 // TestAttachmentFromPathLoadsFile ensures filesystem attachments capture bytes and inferred media type at build time.
 func TestAttachmentFromPathLoadsFile(t *testing.T) {
-	if err := os.WriteFile("path-attachment.txt", []byte("hello path"), 0o644); err != nil {
+	attachmentPath := filepath.Join(t.TempDir(), "path-attachment.txt")
+	if err := os.WriteFile(attachmentPath, []byte("hello path"), 0o644); err != nil {
 		t.Fatalf("write temp attachment: %v", err)
 	}
-	defer os.Remove("path-attachment.txt")
 
-	attachment, err := mail.AttachmentFromPath("path-attachment.txt")
+	attachment, err := mail.AttachmentFromPath(attachmentPath)
 	if err != nil {
 		t.Fatalf("attachment from path: %v", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/goforj/mail"
@@ -209,12 +210,12 @@ func (*typedNilDriver) Send(context.Context, mail.Message) error {
 
 // TestAttachmentFromPathFallbackContentType ensures unknown file types use a portable binary media type.
 func TestAttachmentFromPathFallbackContentType(t *testing.T) {
-	if err := os.WriteFile("attachment.unknownext", []byte("hello"), 0o644); err != nil {
+	attachmentPath := filepath.Join(t.TempDir(), "attachment.unknownext")
+	if err := os.WriteFile(attachmentPath, []byte("hello"), 0o644); err != nil {
 		t.Fatalf("write temp attachment: %v", err)
 	}
-	defer os.Remove("attachment.unknownext")
 
-	attachment, err := mail.AttachmentFromPath("attachment.unknownext")
+	attachment, err := mail.AttachmentFromPath(attachmentPath)
 	if err != nil {
 		t.Fatalf("AttachmentFromPath() error = %v", err)
 	}
