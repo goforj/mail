@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// main keeps this example executable so API drift fails during compilation.
 func main() {
 	raw, _ := mailsmtp.Render(mail.Message{
 		From:    &mail.Recipient{Email: "no-reply@example.com", Name: "Example"},

@@ -8,6 +8,7 @@ import (
 	"github.com/goforj/mail/mailsmtp"
 )
 
+// ExampleRender demonstrates rendering a validated message into SMTP wire form.
 func ExampleRender() {
 	raw, _ := mailsmtp.Render(mail.Message{
 		From:    &mail.Recipient{Email: "no-reply@example.com", Name: "Example"},

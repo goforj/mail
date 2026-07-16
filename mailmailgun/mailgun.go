@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	stdmail "net/mail"
+	"net/textproto"
+	"net/url"
 	"strings"
 
 	"github.com/goforj/mail"
+	"github.com/goforj/mail/internal/mailhttp"
 )
 
 const defaultEndpoint = "https://api.mailgun.net"
@@ -39,16 +42,20 @@ type sendResponse struct {
 	Message string `json:"message"`
 }
 
-type apiError struct {
+// ResponseError describes a non-success response returned by Mailgun.
+// @group Mailgun
+type ResponseError struct {
 	StatusCode int
-	Body       string
+	RequestID  string
 }
 
-func (e *apiError) Error() string {
-	if strings.TrimSpace(e.Body) == "" {
+// Error formats the provider status and safe correlation identifier without including response content.
+// @group Mailgun
+func (e *ResponseError) Error() string {
+	if e.RequestID == "" {
 		return fmt.Sprintf("mailmailgun: send failed with status %d", e.StatusCode)
 	}
-	return fmt.Sprintf("mailmailgun: send failed with status %d: %s", e.StatusCode, e.Body)
+	return fmt.Sprintf("mailmailgun: send failed with status %d (request %s)", e.StatusCode, e.RequestID)
 }
 
 // New creates a Mailgun mail driver from the given config.
@@ -71,9 +78,9 @@ func New(config Config) (*Driver, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("mailmailgun: api key is required")
 	}
-	endpoint := strings.TrimRight(strings.TrimSpace(config.Endpoint), "/")
-	if endpoint == "" {
-		endpoint = defaultEndpoint
+	endpoint, err := mailhttp.Endpoint("mailmailgun", strings.TrimRight(strings.TrimSpace(config.Endpoint), "/"), defaultEndpoint)
+	if err != nil {
+		return nil, err
 	}
 	client := config.HTTPClient
 	if client == nil {
@@ -106,14 +113,14 @@ func New(config Config) (*Driver, error) {
 //	fmt.Println(err == nil)
 //	// false
 func (d *Driver) Send(ctx context.Context, message mail.Message) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := message.Validate(); err != nil {
 		return err
-	}
-	if message.From == nil {
-		return fmt.Errorf("mailmailgun: from is required")
 	}
 
 	var body bytes.Buffer
@@ -175,7 +182,13 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 		}
 	}
 	for _, attachment := range message.Attachments {
-		part, err := writer.CreateFormFile("attachment", attachment.Filename)
+		partHeader := textproto.MIMEHeader{}
+		partHeader.Set("Content-Disposition", mime.FormatMediaType("form-data", map[string]string{
+			"filename": attachment.Filename,
+			"name":     "attachment",
+		}))
+		partHeader.Set("Content-Type", attachment.ContentType)
+		part, err := writer.CreatePart(partHeader)
 		if err != nil {
 			return err
 		}
@@ -192,8 +205,8 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 		return err
 	}
 
-	url := d.endpoint + "/v3/" + d.domain + "/messages"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
+	requestURL := d.endpoint + "/v3/" + url.PathEscape(d.domain) + "/messages"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, &body)
 	if err != nil {
 		return err
 	}
@@ -206,12 +219,15 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
+	respBody, bodyErr := mailhttp.ReadResponseBody(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &apiError{StatusCode: resp.StatusCode, Body: strings.TrimSpace(string(respBody))}
+		return &ResponseError{
+			StatusCode: resp.StatusCode,
+			RequestID:  mailhttp.RequestID(resp.Header, "X-Mailgun-Request-ID"),
+		}
+	}
+	if bodyErr != nil {
+		return bodyErr
 	}
 
 	if len(respBody) > 0 {
@@ -223,6 +239,7 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	return nil
 }
 
+// formatRecipient keeps Mailgun form fields compatible with optional display names.
 func formatRecipient(recipient mail.Recipient) string {
 	address := strings.TrimSpace(recipient.Email)
 	name := strings.TrimSpace(recipient.Name)

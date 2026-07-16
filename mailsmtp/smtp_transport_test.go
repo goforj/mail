@@ -9,7 +9,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"os"
@@ -37,28 +39,31 @@ type smtpCapture struct {
 var (
 	sharedTLSOnce   sync.Once
 	sharedTLSConfig *tls.Config
-	sharedTLSCAPath string
-	sharedTLSErr    error
+	sharedTLSCAPEM  []byte
 )
 
+// setMailFrom serializes writes from the test server before assertions inspect captured state.
 func (c *smtpCapture) setMailFrom(value string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.mailFrom = value
 }
 
+// addRecipient serializes writes from the test server before assertions inspect captured state.
 func (c *smtpCapture) addRecipient(value string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.recipients = append(c.recipients, value)
 }
 
+// setData serializes writes from the test server before assertions inspect captured state.
 func (c *smtpCapture) setData(value string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.data = value
 }
 
+// TestDriverSendOverPlainSMTP ensures the driver completes the SMTP envelope and transfers rendered MIME bytes.
 func TestDriverSendOverPlainSMTP(t *testing.T) {
 	capture := &smtpCapture{}
 	addr := startSMTPServer(t, capture, nil)
@@ -101,6 +106,7 @@ func TestDriverSendOverPlainSMTP(t *testing.T) {
 	}
 }
 
+// TestDriverSendOverImplicitTLS ensures direct TLS validates the configured server and still completes delivery.
 func TestDriverSendOverImplicitTLS(t *testing.T) {
 	capture := &smtpCapture{}
 	tlsConfig, caPath := sharedTestTLSConfig(t)
@@ -150,6 +156,92 @@ func TestDriverSendOverImplicitTLS(t *testing.T) {
 	}
 }
 
+// TestDriverSendUpgradesWithSTARTTLS ensures opportunistic plaintext is upgraded before authentication or message transfer.
+func TestDriverSendUpgradesWithSTARTTLS(t *testing.T) {
+	capture := &smtpCapture{}
+	serverTLS, caPath := sharedTestTLSConfig(t)
+	caPEM, err := os.ReadFile(caPath)
+	if err != nil {
+		t.Fatalf("read test CA: %v", err)
+	}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(caPEM) {
+		t.Fatal("append test CA")
+	}
+	addr := startSTARTTLSServer(t, capture, serverTLS)
+
+	driver, err := mailsmtp.New(mailsmtp.Config{
+		Host: "127.0.0.1",
+		Port: addr.Port,
+		TLSConfig: &tls.Config{
+			ServerName: "localhost",
+			RootCAs:    roots,
+		},
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	err = driver.Send(context.Background(), mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
+		To:      []mail.Recipient{{Email: "alice@example.com"}},
+		Subject: "Welcome",
+		Text:    "hello over STARTTLS",
+	})
+	if err != nil {
+		t.Fatalf("Send() error = %v", err)
+	}
+	if capture.mailFrom != "FROM:<no-reply@example.com>" || !strings.Contains(capture.data, "hello over STARTTLS") {
+		t.Fatalf("capture = %#v", capture)
+	}
+}
+
+// TestDriverSendReturnsContextCancellationWhileWaitingForServer ensures stalled SMTP handshakes remain cancelable.
+func TestDriverSendReturnsContextCancellationWhileWaitingForServer(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	accepted := make(chan struct{})
+	go func() {
+		conn, acceptErr := listener.Accept()
+		if acceptErr != nil {
+			return
+		}
+		defer conn.Close()
+		close(accepted)
+		_, _ = io.Copy(io.Discard, conn)
+	}()
+
+	addr := listener.Addr().(*net.TCPAddr)
+	driver, err := mailsmtp.New(mailsmtp.Config{Host: "127.0.0.1", Port: addr.Port})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- driver.Send(ctx, mail.Message{
+			From:    &mail.Recipient{Email: "no-reply@example.com"},
+			To:      []mail.Recipient{{Email: "alice@example.com"}},
+			Subject: "Welcome",
+			Text:    "hello world",
+		})
+	}()
+	<-accepted
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("Send() error = %v, want %v", err, context.Canceled)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Send() did not return after cancellation")
+	}
+}
+
+// TestDriverSendOverImplicitTLSFailures ensures certificate and connection failures retain actionable transport errors.
 func TestDriverSendOverImplicitTLSFailures(t *testing.T) {
 	tlsConfig, caPath := sharedTestTLSConfig(t)
 	previous := os.Getenv("SSL_CERT_FILE")
@@ -205,6 +297,7 @@ func TestDriverSendOverImplicitTLSFailures(t *testing.T) {
 	}
 }
 
+// startSMTPServer provides a deliberately small implicit-TLS or plaintext server for transport contract tests.
 func startSMTPServer(t *testing.T, capture *smtpCapture, tlsConfig *tls.Config) *net.TCPAddr {
 	t.Helper()
 
@@ -300,7 +393,89 @@ func startSMTPServer(t *testing.T, capture *smtpCapture, tlsConfig *tls.Config) 
 	return listener.Addr().(*net.TCPAddr)
 }
 
-func testTLSConfig(t *testing.T) (*tls.Config, string) {
+// startSTARTTLSServer proves the driver performs the advertised upgrade before sending envelope data.
+func startSTARTTLSServer(t *testing.T, capture *smtpCapture, tlsConfig *tls.Config) *net.TCPAddr {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		conn, acceptErr := listener.Accept()
+		if acceptErr != nil {
+			return
+		}
+		defer conn.Close()
+		_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+		reader := bufio.NewReader(conn)
+		writeLine := func(line string) { _, _ = fmt.Fprintf(conn, "%s\r\n", line) }
+
+		writeLine("220 localhost ESMTP ready")
+		if _, readErr := reader.ReadString('\n'); readErr != nil {
+			return
+		}
+		_, _ = fmt.Fprint(conn, "250-localhost\r\n250 STARTTLS\r\n")
+		line, readErr := reader.ReadString('\n')
+		if readErr != nil || strings.TrimSpace(line) != "STARTTLS" {
+			return
+		}
+		writeLine("220 begin TLS")
+
+		tlsConn := tls.Server(conn, tlsConfig)
+		if handshakeErr := tlsConn.Handshake(); handshakeErr != nil {
+			return
+		}
+		reader = bufio.NewReader(tlsConn)
+		if _, readErr := reader.ReadString('\n'); readErr != nil {
+			return
+		}
+		writeTLSLine := func(line string) { _, _ = fmt.Fprintf(tlsConn, "%s\r\n", line) }
+		writeTLSLine("250 localhost")
+
+		for {
+			line, readErr = reader.ReadString('\n')
+			if readErr != nil {
+				return
+			}
+			line = strings.TrimRight(line, "\r\n")
+			switch {
+			case strings.HasPrefix(line, "MAIL "):
+				capture.setMailFrom(strings.TrimPrefix(line, "MAIL "))
+				writeTLSLine("250 ok")
+			case strings.HasPrefix(line, "RCPT "):
+				capture.addRecipient(strings.TrimPrefix(line, "RCPT "))
+				writeTLSLine("250 ok")
+			case line == "DATA":
+				writeTLSLine("354 end data with <CR><LF>.<CR><LF>")
+				var data strings.Builder
+				for {
+					part, partErr := reader.ReadString('\n')
+					if partErr != nil {
+						return
+					}
+					if part == ".\r\n" {
+						break
+					}
+					data.WriteString(part)
+				}
+				capture.setData(data.String())
+				writeTLSLine("250 queued")
+			case line == "QUIT":
+				writeTLSLine("221 bye")
+				return
+			default:
+				writeTLSLine("250 ok")
+			}
+		}
+	}()
+
+	return listener.Addr().(*net.TCPAddr)
+}
+
+// testTLSConfig creates a private CA because verification behavior is part of the transport contract.
+func testTLSConfig(t *testing.T) (*tls.Config, []byte) {
 	t.Helper()
 
 	caKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -308,12 +483,12 @@ func testTLSConfig(t *testing.T) (*tls.Config, string) {
 		t.Fatalf("generate ca key: %v", err)
 	}
 	caTemplate := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject:      pkix.Name{CommonName: "mail test ca"},
-		NotBefore:    time.Now().Add(-time.Hour),
-		NotAfter:     time.Now().Add(time.Hour),
-		KeyUsage:     x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
-		IsCA:         true,
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "mail test ca"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 	caDER, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, &caKey.PublicKey, caKey)
@@ -346,24 +521,21 @@ func testTLSConfig(t *testing.T) (*tls.Config, string) {
 		t.Fatalf("x509 key pair: %v", err)
 	}
 
-	caPath := filepath.Join(t.TempDir(), "ca.pem")
-	if err := os.WriteFile(caPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER}), 0o644); err != nil {
-		t.Fatalf("write ca cert: %v", err)
-	}
-
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
-	}, caPath
+	}, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER})
 }
 
+// sharedTestTLSConfig amortizes key generation without weakening certificate verification in individual tests.
 func sharedTestTLSConfig(t *testing.T) (*tls.Config, string) {
 	t.Helper()
 	sharedTLSOnce.Do(func() {
-		sharedTLSConfig, sharedTLSCAPath = testTLSConfig(t)
+		sharedTLSConfig, sharedTLSCAPEM = testTLSConfig(t)
 	})
-	if sharedTLSErr != nil {
-		t.Fatal(sharedTLSErr)
+	caPath := filepath.Join(t.TempDir(), "ca.pem")
+	if err := os.WriteFile(caPath, sharedTLSCAPEM, 0o644); err != nil {
+		t.Fatalf("write ca cert: %v", err)
 	}
-	return sharedTLSConfig, sharedTLSCAPath
+	return sharedTLSConfig, caPath
 }

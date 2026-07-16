@@ -6,9 +6,17 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  unit:
+  quality:
+    name: Go ${{ matrix.go }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.24.x", "stable"]
 
     steps:
       - name: Checkout
@@ -17,40 +25,31 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "stable"
+          go-version: ${{ matrix.go }}
           cache: true
           cache-dependency-path: |
             go.sum
-            mailses/go.mod
             mailses/go.sum
-            examples/go.mod
             examples/go.sum
 
-      - name: Download dependencies
-        run: |
-          go mod download
-          for module in mailses examples; do
-            if [ -f "$module/go.mod" ]; then
-              (cd "$module" && go mod download)
-            fi
-          done
+      - name: Verify formatting
+        run: test -z "$(gofmt -l .)"
 
-      - name: Run root tests
-        run: go test ./... -v
+      - name: Check every module against staged siblings
+        env:
+          MAIL_LOCAL_SIBLINGS: "1"
+          MAIL_RELEASE_VERSION: "v0.3.0"
+        run: scripts/check-quality.sh
 
-      - name: Run mailses tests
+      - name: Verify generated examples and API docs
         run: |
-          cd mailses
-          GOWORK=off go test ./... -v
-
-      - name: Verify generated examples compile
-        run: |
-          cd examples
-          GOWORK=off go test ./... -v
+          go run ./docs/examplegen/main.go
+          go run ./docs/readme/main.go
+          go run ./docs/readme/testcounts/main.go
+          git diff --exit-code -- README.md examples
 
   race:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,19 +57,20 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "stable"
+          go-version: stable
           cache: true
           cache-dependency-path: |
             go.sum
-            mailses/go.mod
             mailses/go.sum
 
-      - name: Run race tests
-        run: go test -race ./...
+      - name: Run root race tests
+        run: GOWORK=off go test -count=1 -race ./...
+
+      - name: Run staged SES race tests
+        run: cd mailses && go test -count=1 -race ./...
 
   coverage:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,26 +78,25 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "stable"
+          go-version: stable
           cache: true
           cache-dependency-path: |
             go.sum
-            mailses/go.mod
             mailses/go.sum
-            examples/go.mod
-            examples/go.sum
 
       - name: Run combined coverage
         run: bash scripts/coverage-codecov.sh
 
-      - name: Report merged coverage
+      - name: Enforce and report coverage
         run: |
-          TOTAL="$(awk -F'[: ]+' 'NR>1 {covered += ($4 > 0 ? $3 : 0); total += $3} END {printf "%.1f%%", (covered/total)*100}' coverage.txt)"
-          echo "Merged coverage: $TOTAL"
+          TOTAL="$(awk -F'[: ]+' 'NR>1 {covered += ($4 > 0 ? $3 : 0); total += $3} END {printf "%.1f", (covered/total)*100}' coverage.txt)"
+          awk -v total="$TOTAL" 'BEGIN {if (total < 90.0) exit 1}'
+          echo "Merged coverage: ${TOTAL}%"
           {
             echo "## Coverage"
             echo
-            echo "- Merged total: $TOTAL"
+            echo "- Merged total: ${TOTAL}%"
+            echo "- Required floor: 90.0%"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload results to Codecov

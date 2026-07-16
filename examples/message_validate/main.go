@@ -5,6 +5,7 @@ import (
 	"github.com/goforj/mail"
 )
 
+// main keeps this example executable so API drift fails during compilation.
 func main() {
 	err := (mail.Message{
 		From:    &mail.Recipient{Email: "no-reply@example.com", Name: "Example"},

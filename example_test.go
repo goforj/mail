@@ -8,6 +8,7 @@ import (
 	"github.com/goforj/mail/mailfake"
 )
 
+// ExampleNew demonstrates constructing a mailer with an injected driver.
 func ExampleNew() {
 	fake := mailfake.New()
 	mailer := mail.New(
@@ -25,9 +26,10 @@ func ExampleNew() {
 	// Output: 1
 }
 
+// ExampleMailer_Message demonstrates starting a fluent message from a mailer.
 func ExampleMailer_Message() {
 	fake := mailfake.New()
-	mailer := mail.New(fake)
+	mailer := mail.New(fake, mail.WithDefaultFrom("no-reply@example.com", "Example"))
 
 	message, _ := mailer.Message().
 		To("alice@example.com", "Alice").

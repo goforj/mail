@@ -6,13 +6,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	stdmail "net/mail"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/goforj/mail"
+	"github.com/goforj/mail/internal/mailhttp"
 )
 
 const defaultEndpoint = "https://api.resend.com/emails"
@@ -62,16 +63,20 @@ type sendResponse struct {
 	ID string `json:"id"`
 }
 
-type apiError struct {
+// ResponseError describes a non-success response returned by Resend.
+// @group Resend
+type ResponseError struct {
 	StatusCode int
-	Body       string
+	RequestID  string
 }
 
-func (e *apiError) Error() string {
-	if strings.TrimSpace(e.Body) == "" {
+// Error formats the provider status and safe correlation identifier without including response content.
+// @group Resend
+func (e *ResponseError) Error() string {
+	if e.RequestID == "" {
 		return fmt.Sprintf("mailresend: send failed with status %d", e.StatusCode)
 	}
-	return fmt.Sprintf("mailresend: send failed with status %d: %s", e.StatusCode, e.Body)
+	return fmt.Sprintf("mailresend: send failed with status %d (request %s)", e.StatusCode, e.RequestID)
 }
 
 // New creates a Resend mail driver from the given config.
@@ -89,9 +94,9 @@ func New(config Config) (*Driver, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("mailresend: api key is required")
 	}
-	endpoint := strings.TrimSpace(config.Endpoint)
-	if endpoint == "" {
-		endpoint = defaultEndpoint
+	endpoint, err := mailhttp.Endpoint("mailresend", config.Endpoint, defaultEndpoint)
+	if err != nil {
+		return nil, err
 	}
 
 	client := config.HTTPClient
@@ -124,14 +129,14 @@ func New(config Config) (*Driver, error) {
 //	fmt.Println(err == nil)
 //	// false
 func (d *Driver) Send(ctx context.Context, message mail.Message) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := message.Validate(); err != nil {
 		return err
-	}
-	if message.From == nil {
-		return fmt.Errorf("mailresend: from is required")
 	}
 
 	payload := sendRequest{
@@ -147,8 +152,7 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 
 	headers := copyHeaders(message.Headers)
 	if len(headers) > 0 {
-		delete(headers, "Idempotency-Key")
-		delete(headers, "idempotency-key")
+		deleteHeaderFold(headers, "Idempotency-Key")
 		if len(headers) > 0 {
 			payload.Headers = headers
 		}
@@ -183,16 +187,15 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
+	body, bodyErr := mailhttp.ReadResponseBody(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &apiError{
+		return &ResponseError{
 			StatusCode: resp.StatusCode,
-			Body:       strings.TrimSpace(string(body)),
+			RequestID:  mailhttp.RequestID(resp.Header, "X-Resend-Request-ID"),
 		}
+	}
+	if bodyErr != nil {
+		return bodyErr
 	}
 
 	var decoded sendResponse
@@ -204,6 +207,7 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	return nil
 }
 
+// recipientEmails maps the portable recipient model to Resend's bare-address arrays.
 func recipientEmails(recipients []mail.Recipient) []string {
 	if len(recipients) == 0 {
 		return nil
@@ -215,6 +219,7 @@ func recipientEmails(recipients []mail.Recipient) []string {
 	return out
 }
 
+// formatRecipient keeps Resend's sender field compatible with optional display names.
 func formatRecipient(recipient mail.Recipient) string {
 	address := strings.TrimSpace(recipient.Email)
 	name := strings.TrimSpace(recipient.Name)
@@ -224,6 +229,7 @@ func formatRecipient(recipient mail.Recipient) string {
 	return (&stdmail.Address{Name: name, Address: address}).String()
 }
 
+// copyHeaders detaches caller-owned header maps before provider-specific filtering.
 func copyHeaders(headers map[string]string) map[string]string {
 	if len(headers) == 0 {
 		return nil
@@ -235,6 +241,16 @@ func copyHeaders(headers map[string]string) map[string]string {
 	return out
 }
 
+// deleteHeaderFold removes a header using the case-insensitive identity defined by mail protocols.
+func deleteHeaderFold(headers map[string]string, name string) {
+	for key := range headers {
+		if strings.EqualFold(strings.TrimSpace(key), name) {
+			delete(headers, key)
+		}
+	}
+}
+
+// idempotencyKey extracts Resend's transport header without forwarding it as message content.
 func idempotencyKey(headers map[string]string) (string, bool) {
 	for key, value := range headers {
 		if strings.EqualFold(strings.TrimSpace(key), "Idempotency-Key") {
@@ -247,27 +263,49 @@ func idempotencyKey(headers map[string]string) (string, bool) {
 	return "", false
 }
 
+// buildTags produces deterministic provider tags so equivalent messages serialize identically.
 func buildTags(tags []string, metadata map[string]string) []tag {
 	out := make([]tag, 0, len(tags)+len(metadata))
-	for key, value := range metadata {
+	usedNames := make(map[string]struct{}, len(tags)+len(metadata))
+	keys := make([]string, 0, len(metadata))
+	for key := range metadata {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		value := metadata[key]
 		name := sanitizeTagToken(key, 256)
 		tagValue := sanitizeTagToken(value, 256)
 		if name == "" || tagValue == "" {
 			continue
 		}
+		if _, exists := usedNames[name]; exists {
+			continue
+		}
+		usedNames[name] = struct{}{}
 		out = append(out, tag{Name: name, Value: tagValue})
 	}
-	for i, value := range tags {
-		name := "tag_" + strconv.Itoa(i+1)
+	nextTagIndex := 1
+	for _, value := range tags {
 		tagValue := sanitizeTagToken(value, 256)
 		if tagValue == "" {
 			continue
 		}
+		name := ""
+		for {
+			name = "tag_" + strconv.Itoa(nextTagIndex)
+			nextTagIndex++
+			if _, exists := usedNames[name]; !exists {
+				break
+			}
+		}
+		usedNames[name] = struct{}{}
 		out = append(out, tag{Name: name, Value: tagValue})
 	}
 	return out
 }
 
+// buildAttachments maps portable attachments to Resend's base64 JSON representation.
 func buildAttachments(values []mail.Attachment) []attachment {
 	if len(values) == 0 {
 		return nil
@@ -283,6 +321,7 @@ func buildAttachments(values []mail.Attachment) []attachment {
 	return out
 }
 
+// sanitizeTagToken limits tags to the portable token subset accepted by Resend.
 func sanitizeTagToken(value string, max int) string {
 	if max <= 0 {
 		return ""

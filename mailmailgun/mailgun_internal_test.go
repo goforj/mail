@@ -12,8 +12,9 @@ import (
 	"github.com/goforj/mail"
 )
 
+// TestAPIErrorAndHelpers ensures Mailgun failures retain status, request identity, and unwrap behavior.
 func TestAPIErrorAndHelpers(t *testing.T) {
-	if got, want := (&apiError{StatusCode: http.StatusBadRequest}).Error(), "mailmailgun: send failed with status 400"; got != want {
+	if got, want := (&ResponseError{StatusCode: http.StatusBadRequest}).Error(), "mailmailgun: send failed with status 400"; got != want {
 		t.Fatalf("apiError(empty) = %q, want %q", got, want)
 	}
 	if got := formatRecipient(mail.Recipient{Email: "alice@example.com", Name: "Alice"}); got != `"Alice" <alice@example.com>` {
@@ -24,6 +25,7 @@ func TestAPIErrorAndHelpers(t *testing.T) {
 	}
 }
 
+// TestDriverSendEarlyBranches ensures invalid input and cancellation prevent Mailgun requests.
 func TestDriverSendEarlyBranches(t *testing.T) {
 	driver, err := New(Config{
 		Domain: "mg.example.com",
@@ -43,8 +45,8 @@ func TestDriverSendEarlyBranches(t *testing.T) {
 		Subject: "Welcome",
 		Text:    "hello world",
 	})
-	if !errors.Is(err, mail.ErrMissingRecipient) {
-		t.Fatalf("Send() error = %v, want %v", err, mail.ErrMissingRecipient)
+	if !errors.Is(err, mail.ErrMissingFrom) {
+		t.Fatalf("Send() error = %v, want %v", err, mail.ErrMissingFrom)
 	}
 
 	driver, err = New(Config{
@@ -70,11 +72,12 @@ func TestDriverSendEarlyBranches(t *testing.T) {
 		Subject: "Welcome",
 		Text:    "hello world",
 	})
-	if err == nil || !strings.Contains(err.Error(), "from is required") {
+	if !errors.Is(err, mail.ErrMissingFrom) {
 		t.Fatalf("Send() from error = %v", err)
 	}
 }
 
+// TestDriverSendRejectsInvalidJSONResponse ensures malformed success responses cannot masquerade as delivered mail.
 func TestDriverSendRejectsInvalidJSONResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("{"))
@@ -102,6 +105,7 @@ func TestDriverSendRejectsInvalidJSONResponse(t *testing.T) {
 	}
 }
 
+// TestDriverSendAdditionalTransportBranches ensures network and body-read failures retain their underlying causes.
 func TestDriverSendAdditionalTransportBranches(t *testing.T) {
 	driver := &Driver{
 		domain:   "mg.example.com",
@@ -166,6 +170,7 @@ func TestDriverSendAdditionalTransportBranches(t *testing.T) {
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
+// RoundTrip adapts a closure into an HTTP transport for precise request assertions.
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
@@ -174,6 +179,7 @@ type errReader struct {
 	err error
 }
 
+// Read injects the configured response-body failure into provider error handling.
 func (r errReader) Read([]byte) (int, error) {
 	return 0, r.err
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/goforj/mail/mailfake"
 )
 
+// TestMailerFluentSendAppliesDefaults ensures fluent delivery merges defaults before validation and send.
 func TestMailerFluentSendAppliesDefaults(t *testing.T) {
 	fake := mailfake.New()
 	mailer := mail.New(
@@ -57,6 +58,7 @@ func TestMailerFluentSendAppliesDefaults(t *testing.T) {
 	}
 }
 
+// TestBuilderSendRequiresMailer ensures standalone builders cannot silently discard a message.
 func TestBuilderSendRequiresMailer(t *testing.T) {
 	builder := (&mail.MessageBuilder{}).
 		To("alice@example.com", "Alice").
@@ -68,6 +70,7 @@ func TestBuilderSendRequiresMailer(t *testing.T) {
 	}
 }
 
+// TestMailerSendReturnsValidationErrorAfterDefaults ensures incomplete defaults still fail before the driver.
 func TestMailerSendReturnsValidationErrorAfterDefaults(t *testing.T) {
 	fake := mailfake.New()
 	mailer := mail.New(
@@ -85,6 +88,7 @@ func TestMailerSendReturnsValidationErrorAfterDefaults(t *testing.T) {
 	}
 }
 
+// TestMailerApplyDefaultsCreatesMetadataMap ensures default metadata can merge into an initially nil message map.
 func TestMailerApplyDefaultsCreatesMetadataMap(t *testing.T) {
 	msg, err := mail.New(
 		mailfake.New(),
@@ -103,8 +107,33 @@ func TestMailerApplyDefaultsCreatesMetadataMap(t *testing.T) {
 	}
 }
 
+// TestMailerDefaultHeadersUseCaseInsensitiveIdentity ensures header defaults cannot duplicate an explicitly cased header.
+func TestMailerDefaultHeadersUseCaseInsensitiveIdentity(t *testing.T) {
+	message, err := mail.New(
+		mailfake.New(),
+		mail.WithDefaultFrom("no-reply@example.com", "Example"),
+		mail.WithDefaultHeader("X-App", "default"),
+	).Message().
+		To("alice@example.com", "Alice").
+		Subject("Welcome").
+		Text("hello world").
+		Header("x-app", "message").
+		Build()
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	if got, want := len(message.Headers), 1; got != want {
+		t.Fatalf("len(headers) = %d, want %d", got, want)
+	}
+	if got, want := message.Headers["x-app"], "message"; got != want {
+		t.Fatalf("header = %q, want %q", got, want)
+	}
+}
+
+// TestMessageValidation ensures the core required-field contract remains enforced through Mailer.
 func TestMessageValidation(t *testing.T) {
 	message := mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
 		To:      []mail.Recipient{{Email: "alice@example.com"}},
 		Subject: "Welcome",
 		Text:    "hello world",
@@ -119,6 +148,7 @@ func TestMessageValidation(t *testing.T) {
 	}
 }
 
+// TestBuilderAttachments ensures in-memory and file attachments retain content and metadata.
 func TestBuilderAttachments(t *testing.T) {
 	if err := os.WriteFile("test-attachment.txt", []byte("hello attachment"), 0o644); err != nil {
 		t.Fatalf("write temp attachment: %v", err)
@@ -127,6 +157,7 @@ func TestBuilderAttachments(t *testing.T) {
 
 	message, err := mail.New(mailfake.New()).
 		Message().
+		From("no-reply@example.com", "Example").
 		To("alice@example.com", "Alice").
 		Subject("Welcome").
 		Text("hello world").
@@ -148,6 +179,7 @@ func TestBuilderAttachments(t *testing.T) {
 	}
 }
 
+// TestAttachmentFromPathLoadsFile ensures filesystem attachments capture bytes and inferred media type at build time.
 func TestAttachmentFromPathLoadsFile(t *testing.T) {
 	if err := os.WriteFile("path-attachment.txt", []byte("hello path"), 0o644); err != nil {
 		t.Fatalf("write temp attachment: %v", err)

@@ -6,12 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	stdmail "net/mail"
+	"sort"
 	"strings"
 
 	"github.com/goforj/mail"
+	"github.com/goforj/mail/internal/mailhttp"
 )
 
 const defaultEndpoint = "https://api.postmarkapp.com/email"
@@ -67,16 +68,27 @@ type sendResponse struct {
 	Message   string `json:"Message"`
 }
 
-type apiError struct {
+// ResponseError describes a non-success response returned by Postmark.
+// @group Postmark
+type ResponseError struct {
 	StatusCode int
-	Body       string
+	RequestID  string
+	ErrorCode  int
 }
 
-func (e *apiError) Error() string {
-	if strings.TrimSpace(e.Body) == "" {
+// Error formats provider codes and a safe correlation identifier without including response content.
+// @group Postmark
+func (e *ResponseError) Error() string {
+	if e.ErrorCode != 0 {
+		if e.RequestID == "" {
+			return fmt.Sprintf("mailpostmark: send failed with status %d and provider code %d", e.StatusCode, e.ErrorCode)
+		}
+		return fmt.Sprintf("mailpostmark: send failed with status %d and provider code %d (request %s)", e.StatusCode, e.ErrorCode, e.RequestID)
+	}
+	if e.RequestID == "" {
 		return fmt.Sprintf("mailpostmark: send failed with status %d", e.StatusCode)
 	}
-	return fmt.Sprintf("mailpostmark: send failed with status %d: %s", e.StatusCode, e.Body)
+	return fmt.Sprintf("mailpostmark: send failed with status %d (request %s)", e.StatusCode, e.RequestID)
 }
 
 // New creates a Postmark mail driver from the given config.
@@ -94,9 +106,9 @@ func New(config Config) (*Driver, error) {
 	if serverToken == "" {
 		return nil, fmt.Errorf("mailpostmark: server token is required")
 	}
-	endpoint := strings.TrimSpace(config.Endpoint)
-	if endpoint == "" {
-		endpoint = defaultEndpoint
+	endpoint, err := mailhttp.Endpoint("mailpostmark", config.Endpoint, defaultEndpoint)
+	if err != nil {
+		return nil, err
 	}
 	client := config.HTTPClient
 	if client == nil {
@@ -128,14 +140,14 @@ func New(config Config) (*Driver, error) {
 //	fmt.Println(err == nil)
 //	// false
 func (d *Driver) Send(ctx context.Context, message mail.Message) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := message.Validate(); err != nil {
 		return err
-	}
-	if message.From == nil {
-		return fmt.Errorf("mailpostmark: from is required")
 	}
 
 	payload := sendRequest{
@@ -157,8 +169,17 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 		if payload.Metadata == nil {
 			payload.Metadata = map[string]string{}
 		}
-		for i, tag := range message.Tags[1:] {
-			payload.Metadata[fmt.Sprintf("tag_%d", i+2)] = tag
+		nextTagIndex := 2
+		for _, tag := range message.Tags[1:] {
+			key := ""
+			for {
+				key = fmt.Sprintf("tag_%d", nextTagIndex)
+				nextTagIndex++
+				if _, exists := payload.Metadata[key]; !exists {
+					break
+				}
+			}
+			payload.Metadata[key] = tag
 		}
 	}
 	if headers := buildHeaders(message.Headers); len(headers) > 0 {
@@ -186,13 +207,15 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
+	body, bodyErr := mailhttp.ReadResponseBody(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &apiError{StatusCode: resp.StatusCode, Body: strings.TrimSpace(string(body))}
+		return &ResponseError{
+			StatusCode: resp.StatusCode,
+			RequestID:  mailhttp.RequestID(resp.Header, "X-Postmark-Request-ID"),
+		}
+	}
+	if bodyErr != nil {
+		return bodyErr
 	}
 
 	if len(body) > 0 {
@@ -200,10 +223,18 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 		if err := json.Unmarshal(body, &decoded); err != nil {
 			return err
 		}
+		if decoded.ErrorCode != 0 {
+			return &ResponseError{
+				StatusCode: resp.StatusCode,
+				RequestID:  mailhttp.RequestID(resp.Header, "X-Postmark-Request-ID"),
+				ErrorCode:  decoded.ErrorCode,
+			}
+		}
 	}
 	return nil
 }
 
+// recipientStrings maps recipients to Postmark's comma-delimited address fields.
 func recipientStrings(recipients []mail.Recipient) []string {
 	if len(recipients) == 0 {
 		return nil
@@ -215,6 +246,7 @@ func recipientStrings(recipients []mail.Recipient) []string {
 	return out
 }
 
+// formatRecipient keeps Postmark address fields compatible with optional display names.
 func formatRecipient(recipient mail.Recipient) string {
 	address := strings.TrimSpace(recipient.Email)
 	name := strings.TrimSpace(recipient.Name)
@@ -224,12 +256,19 @@ func formatRecipient(recipient mail.Recipient) string {
 	return (&stdmail.Address{Name: name, Address: address}).String()
 }
 
+// buildHeaders sorts map-backed headers so equivalent messages produce stable JSON arrays.
 func buildHeaders(headers map[string]string) []header {
 	if len(headers) == 0 {
 		return nil
 	}
+	keys := make([]string, 0, len(headers))
+	for key := range headers {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
 	out := make([]header, 0, len(headers))
-	for key, value := range headers {
+	for _, key := range keys {
+		value := headers[key]
 		if strings.TrimSpace(key) == "" {
 			continue
 		}
@@ -238,6 +277,7 @@ func buildHeaders(headers map[string]string) []header {
 	return out
 }
 
+// copyStringMap detaches metadata before Postmark-specific tag enrichment.
 func copyStringMap(in map[string]string) map[string]string {
 	if len(in) == 0 {
 		return nil
@@ -249,6 +289,7 @@ func copyStringMap(in map[string]string) map[string]string {
 	return out
 }
 
+// buildAttachments maps portable attachments to Postmark's base64 JSON representation.
 func buildAttachments(in []mail.Attachment) []attachment {
 	if len(in) == 0 {
 		return nil

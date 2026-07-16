@@ -2,6 +2,7 @@ package mailpostmark
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,8 +11,9 @@ import (
 	"github.com/goforj/mail"
 )
 
+// TestAPIErrorAndHelpers ensures Postmark failures retain status, request identity, and unwrap behavior.
 func TestAPIErrorAndHelpers(t *testing.T) {
-	if got := (&apiError{StatusCode: http.StatusBadGateway}).Error(); got != "mailpostmark: send failed with status 502" {
+	if got := (&ResponseError{StatusCode: http.StatusBadGateway}).Error(); got != "mailpostmark: send failed with status 502" {
 		t.Fatalf("empty api error = %q", got)
 	}
 
@@ -24,6 +26,7 @@ func TestAPIErrorAndHelpers(t *testing.T) {
 	}
 }
 
+// TestDriverSendEarlyBranches ensures invalid input and cancellation prevent Postmark requests.
 func TestDriverSendEarlyBranches(t *testing.T) {
 	driver, err := New(Config{
 		ServerToken: "pm_test_token",
@@ -39,7 +42,7 @@ func TestDriverSendEarlyBranches(t *testing.T) {
 		t.Fatalf("Send canceled error = %v, want context canceled", err)
 	}
 
-	if err := driver.Send(context.Background(), mail.Message{}); err == nil || !strings.Contains(err.Error(), "at least one recipient is required") {
+	if err := driver.Send(context.Background(), mail.Message{}); !errors.Is(err, mail.ErrMissingFrom) {
 		t.Fatalf("Send validate error = %v", err)
 	}
 
@@ -56,11 +59,12 @@ func TestDriverSendEarlyBranches(t *testing.T) {
 		To:      []mail.Recipient{{Email: "alice@example.com"}},
 		Subject: "Welcome",
 		Text:    "hello world",
-	}); err == nil || !strings.Contains(err.Error(), "from is required") {
+	}); !errors.Is(err, mail.ErrMissingFrom) {
 		t.Fatalf("Send from error = %v", err)
 	}
 }
 
+// TestDriverSendRejectsInvalidJSONResponse ensures malformed success responses cannot masquerade as delivered mail.
 func TestDriverSendRejectsInvalidJSONResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("{"))

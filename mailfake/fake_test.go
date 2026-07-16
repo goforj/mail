@@ -3,12 +3,14 @@ package mailfake_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/goforj/mail"
 	"github.com/goforj/mail/mailfake"
 )
 
+// TestDriverSetErrorResetMessagesAndLast ensures fake state controls remain deterministic for application tests.
 func TestDriverSetErrorResetMessagesAndLast(t *testing.T) {
 	fake := mailfake.New()
 
@@ -22,6 +24,7 @@ func TestDriverSetErrorResetMessagesAndLast(t *testing.T) {
 	wantErr := errors.New("boom")
 	fake.SetError(wantErr)
 	err := fake.Send(context.Background(), mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
 		To:      []mail.Recipient{{Email: "alice@example.com"}},
 		Subject: "Welcome",
 		Text:    "hello world",
@@ -39,6 +42,7 @@ func TestDriverSetErrorResetMessagesAndLast(t *testing.T) {
 	}
 
 	original := mail.Message{
+		From:     &mail.Recipient{Email: "no-reply@example.com"},
 		To:       []mail.Recipient{{Email: "alice@example.com", Name: "Alice"}},
 		Subject:  "Welcome",
 		Text:     "hello world",
@@ -78,5 +82,34 @@ func TestDriverSetErrorResetMessagesAndLast(t *testing.T) {
 	}
 	if got, want := last.Subject, "Welcome"; got != want {
 		t.Fatalf("last subject = %q, want %q", got, want)
+	}
+}
+
+// TestDriverSupportsConcurrentSendsAndReads ensures test assertions can inspect messages during parallel delivery safely.
+func TestDriverSupportsConcurrentSendsAndReads(t *testing.T) {
+	fake := mailfake.New()
+	message := mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
+		To:      []mail.Recipient{{Email: "alice@example.com"}},
+		Subject: "Welcome",
+		Text:    "hello world",
+	}
+
+	const sends = 50
+	var wait sync.WaitGroup
+	wait.Add(sends)
+	for range sends {
+		go func() {
+			defer wait.Done()
+			if err := fake.Send(context.Background(), message); err != nil {
+				t.Errorf("Send() error = %v", err)
+			}
+			_ = fake.Messages()
+			_, _ = fake.Last()
+		}()
+	}
+	wait.Wait()
+	if got, want := fake.SentCount(), sends; got != want {
+		t.Fatalf("SentCount() = %d, want %d", got, want)
 	}
 }

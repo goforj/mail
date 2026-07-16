@@ -6,11 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	"github.com/goforj/mail"
+	"github.com/goforj/mail/internal/mailhttp"
 )
 
 const defaultEndpoint = "https://api.sendgrid.com/v3/mail/send"
@@ -38,9 +38,7 @@ type sendRequest struct {
 	Personalizations []personalization `json:"personalizations"`
 	Content          []contentBlock    `json:"content"`
 	Attachments      []attachment      `json:"attachments,omitempty"`
-	Headers          map[string]string `json:"headers,omitempty"`
 	Categories       []string          `json:"categories,omitempty"`
-	CustomArgs       map[string]string `json:"custom_args,omitempty"`
 }
 
 type sender struct {
@@ -68,16 +66,20 @@ type attachment struct {
 	Disposition string `json:"disposition,omitempty"`
 }
 
-type apiError struct {
+// ResponseError describes a non-success response returned by SendGrid.
+// @group SendGrid
+type ResponseError struct {
 	StatusCode int
-	Body       string
+	RequestID  string
 }
 
-func (e *apiError) Error() string {
-	if strings.TrimSpace(e.Body) == "" {
+// Error formats the provider status and safe correlation identifier without including response content.
+// @group SendGrid
+func (e *ResponseError) Error() string {
+	if e.RequestID == "" {
 		return fmt.Sprintf("mailsendgrid: send failed with status %d", e.StatusCode)
 	}
-	return fmt.Sprintf("mailsendgrid: send failed with status %d: %s", e.StatusCode, e.Body)
+	return fmt.Sprintf("mailsendgrid: send failed with status %d (request %s)", e.StatusCode, e.RequestID)
 }
 
 // New creates a SendGrid mail driver from the given config.
@@ -95,9 +97,9 @@ func New(config Config) (*Driver, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("mailsendgrid: api key is required")
 	}
-	endpoint := strings.TrimSpace(config.Endpoint)
-	if endpoint == "" {
-		endpoint = defaultEndpoint
+	endpoint, err := mailhttp.Endpoint("mailsendgrid", config.Endpoint, defaultEndpoint)
+	if err != nil {
+		return nil, err
 	}
 	client := config.HTTPClient
 	if client == nil {
@@ -128,14 +130,14 @@ func New(config Config) (*Driver, error) {
 //	fmt.Println(err == nil)
 //	// false
 func (d *Driver) Send(ctx context.Context, message mail.Message) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := message.Validate(); err != nil {
 		return err
-	}
-	if message.From == nil {
-		return fmt.Errorf("mailsendgrid: from is required")
 	}
 
 	contents := buildContent(message)
@@ -152,14 +154,8 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 			Name:  strings.TrimSpace(replyTo.Name),
 		}
 	}
-	if headers := copyStringMap(message.Headers); len(headers) > 0 {
-		payload.Headers = headers
-	}
 	if len(message.Tags) > 0 {
 		payload.Categories = append([]string(nil), message.Tags...)
-	}
-	if metadata := copyStringMap(message.Metadata); len(metadata) > 0 {
-		payload.CustomArgs = metadata
 	}
 	if attachments := buildAttachments(message.Attachments); len(attachments) > 0 {
 		payload.Attachments = attachments
@@ -183,19 +179,20 @@ func (d *Driver) Send(ctx context.Context, message mail.Message) error {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
+	_, bodyErr := mailhttp.ReadResponseBody(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &apiError{
+		return &ResponseError{
 			StatusCode: resp.StatusCode,
-			Body:       strings.TrimSpace(string(body)),
+			RequestID:  mailhttp.RequestID(resp.Header, "X-Message-ID"),
 		}
+	}
+	if bodyErr != nil {
+		return bodyErr
 	}
 	return nil
 }
 
+// buildPersonalization places recipient-scoped headers and custom arguments at SendGrid's supported schema level.
 func buildPersonalization(message mail.Message) personalization {
 	p := personalization{
 		To:         recipientsToSenders(message.To),
@@ -213,6 +210,7 @@ func buildPersonalization(message mail.Message) personalization {
 	return p
 }
 
+// buildContent preserves both portable body variants in SendGrid's preferred plain-then-HTML order.
 func buildContent(message mail.Message) []contentBlock {
 	out := make([]contentBlock, 0, 2)
 	if text := strings.TrimSpace(message.Text); text != "" {
@@ -230,6 +228,7 @@ func buildContent(message mail.Message) []contentBlock {
 	return out
 }
 
+// recipientsToSenders maps portable recipients to SendGrid sender objects.
 func recipientsToSenders(recipients []mail.Recipient) []sender {
 	if len(recipients) == 0 {
 		return nil
@@ -241,6 +240,7 @@ func recipientsToSenders(recipients []mail.Recipient) []sender {
 	return out
 }
 
+// toSender trims portable recipient fields before encoding provider JSON.
 func toSender(recipient mail.Recipient) sender {
 	return sender{
 		Email: strings.TrimSpace(recipient.Email),
@@ -248,6 +248,7 @@ func toSender(recipient mail.Recipient) sender {
 	}
 }
 
+// copyStringMap detaches map-backed fields before placing them in provider payloads.
 func copyStringMap(values map[string]string) map[string]string {
 	if len(values) == 0 {
 		return nil
@@ -259,6 +260,7 @@ func copyStringMap(values map[string]string) map[string]string {
 	return out
 }
 
+// buildAttachments maps portable attachments to SendGrid's base64 JSON representation.
 func buildAttachments(values []mail.Attachment) []attachment {
 	if len(values) == 0 {
 		return nil

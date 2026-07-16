@@ -2,6 +2,7 @@ package mailmailgun_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/goforj/mail/mailmailgun"
 )
 
+// TestNewRequiresDomainAndAPIKey ensures Mailgun routing and authentication are both configured.
 func TestNewRequiresDomainAndAPIKey(t *testing.T) {
 	_, err := mailmailgun.New(mailmailgun.Config{APIKey: "key"})
 	if err == nil || !strings.Contains(err.Error(), "domain is required") {
@@ -22,8 +24,13 @@ func TestNewRequiresDomainAndAPIKey(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "api key is required") {
 		t.Fatalf("new error = %v, want api key error", err)
 	}
+	_, err = mailmailgun.New(mailmailgun.Config{Domain: "mg.example.com", APIKey: "key", Endpoint: ":"})
+	if err == nil || !strings.Contains(err.Error(), "endpoint") {
+		t.Fatalf("new error = %v, want endpoint error", err)
+	}
 }
 
+// TestDriverSendPostsExpectedPayload ensures Mailgun receives the expected multipart provider payload.
 func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	var gotAuth string
 	var gotPath string
@@ -113,9 +120,11 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	}
 }
 
+// TestDriverSendReturnsAPIError ensures non-success Mailgun responses preserve provider diagnostics.
 func TestDriverSendReturnsAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		w.Header().Set("X-Mailgun-Request-ID", "mailgun_req_123")
+		http.Error(w, "super-secret message data", http.StatusBadRequest)
 	}))
 	defer server.Close()
 
@@ -137,5 +146,12 @@ func TestDriverSendReturnsAPIError(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "status 400") {
 		t.Fatalf("send error = %v, want api error", err)
+	}
+	var responseErr *mailmailgun.ResponseError
+	if !errors.As(err, &responseErr) || responseErr.RequestID != "mailgun_req_123" {
+		t.Fatalf("send error = %#v, want response error with request id", err)
+	}
+	if strings.Contains(err.Error(), "super-secret") {
+		t.Fatalf("send error leaked provider body: %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package mailsendgrid_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,13 +14,19 @@ import (
 	"github.com/goforj/mail/mailsendgrid"
 )
 
+// TestNewRequiresAPIKey ensures SendGrid cannot be constructed without authentication.
 func TestNewRequiresAPIKey(t *testing.T) {
 	_, err := mailsendgrid.New(mailsendgrid.Config{})
 	if err == nil || !strings.Contains(err.Error(), "api key is required") {
 		t.Fatalf("new error = %v, want api key error", err)
 	}
+	_, err = mailsendgrid.New(mailsendgrid.Config{APIKey: "key", Endpoint: ":"})
+	if err == nil || !strings.Contains(err.Error(), "endpoint") {
+		t.Fatalf("new error = %v, want endpoint error", err)
+	}
 }
 
+// TestDriverSendPostsExpectedPayload ensures SendGrid receives deterministic personalizations and attachments.
 func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	type requestBody struct {
 		From struct {
@@ -147,8 +154,8 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	if len(gotBody.Personalizations[0].Bcc) != 1 || gotBody.Personalizations[0].Bcc[0].Email != "audit@example.com" {
 		t.Fatalf("bcc = %#v", gotBody.Personalizations[0].Bcc)
 	}
-	if gotBody.Headers["X-App"] != "goforj" {
-		t.Fatalf("headers = %#v", gotBody.Headers)
+	if gotBody.Headers != nil {
+		t.Fatalf("top-level headers are not part of SendGrid's schema: %#v", gotBody.Headers)
 	}
 	if gotBody.Personalizations[0].Headers["X-App"] != "goforj" {
 		t.Fatalf("personalization headers = %#v", gotBody.Personalizations[0].Headers)
@@ -156,8 +163,8 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	if len(gotBody.Categories) != 1 || gotBody.Categories[0] != "welcome" {
 		t.Fatalf("categories = %#v", gotBody.Categories)
 	}
-	if gotBody.CustomArgs["tenant_id"] != "tenant_123" {
-		t.Fatalf("custom args = %#v", gotBody.CustomArgs)
+	if gotBody.CustomArgs != nil {
+		t.Fatalf("top-level custom args are not part of SendGrid's schema: %#v", gotBody.CustomArgs)
 	}
 	if gotBody.Personalizations[0].CustomArgs["tenant_id"] != "tenant_123" {
 		t.Fatalf("personalization custom args = %#v", gotBody.Personalizations[0].CustomArgs)
@@ -170,9 +177,11 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	}
 }
 
+// TestDriverSendReturnsAPIError ensures non-success SendGrid responses preserve provider diagnostics.
 func TestDriverSendReturnsAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		w.Header().Set("X-Message-ID", "sendgrid_req_123")
+		http.Error(w, "super-secret message data", http.StatusBadRequest)
 	}))
 	defer server.Close()
 
@@ -193,5 +202,12 @@ func TestDriverSendReturnsAPIError(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "status 400") {
 		t.Fatalf("send error = %v, want api error", err)
+	}
+	var responseErr *mailsendgrid.ResponseError
+	if !errors.As(err, &responseErr) || responseErr.RequestID != "sendgrid_req_123" {
+		t.Fatalf("send error = %#v, want response error with request id", err)
+	}
+	if strings.Contains(err.Error(), "super-secret") {
+		t.Fatalf("send error leaked provider body: %v", err)
 	}
 }

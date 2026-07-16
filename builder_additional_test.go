@@ -10,6 +10,7 @@ import (
 	"github.com/goforj/mail/mailfake"
 )
 
+// TestBuilderFluentMethodsPopulateMessage ensures fluent setters populate every portable message field.
 func TestBuilderFluentMethodsPopulateMessage(t *testing.T) {
 	msg := mail.New(mailfake.New()).Message().
 		From("team@example.com", "Example Team").
@@ -60,6 +61,7 @@ func TestBuilderFluentMethodsPopulateMessage(t *testing.T) {
 	}
 }
 
+// TestBuilderMessageReturnsClone ensures callers cannot mutate builder state through returned messages.
 func TestBuilderMessageReturnsClone(t *testing.T) {
 	builder := mail.New(mailfake.New()).Message().
 		To("alice@example.com", "Alice").
@@ -90,8 +92,10 @@ func TestBuilderMessageReturnsClone(t *testing.T) {
 	}
 }
 
+// TestBuilderBuildWithoutMailerValidates ensures message construction remains useful without a delivery dependency.
 func TestBuilderBuildWithoutMailerValidates(t *testing.T) {
 	msg, err := (&mail.MessageBuilder{}).
+		From("no-reply@example.com", "Example").
 		To("alice@example.com", "Alice").
 		Subject("Welcome").
 		Text("hello world").
@@ -104,6 +108,7 @@ func TestBuilderBuildWithoutMailerValidates(t *testing.T) {
 	}
 
 	_, err = (&mail.MessageBuilder{}).
+		From("no-reply@example.com", "Example").
 		Subject("Welcome").
 		Text("hello world").
 		Build()
@@ -112,6 +117,7 @@ func TestBuilderBuildWithoutMailerValidates(t *testing.T) {
 	}
 }
 
+// TestBuilderBuildReturnsAttachmentError ensures file-loading failures survive until build.
 func TestBuilderBuildReturnsAttachmentError(t *testing.T) {
 	_, err := mail.New(mailfake.New()).Message().
 		To("alice@example.com", "Alice").
@@ -124,6 +130,7 @@ func TestBuilderBuildReturnsAttachmentError(t *testing.T) {
 	}
 }
 
+// TestBuilderSkipsSubsequentAttachFileAfterError ensures the first attachment failure remains authoritative.
 func TestBuilderSkipsSubsequentAttachFileAfterError(t *testing.T) {
 	builder := mail.New(mailfake.New()).Message().
 		To("alice@example.com", "Alice").
@@ -137,6 +144,7 @@ func TestBuilderSkipsSubsequentAttachFileAfterError(t *testing.T) {
 	}
 }
 
+// TestBuilderSendReturnsBuildErrorEarly ensures invalid builder state prevents driver invocation.
 func TestBuilderSendReturnsBuildErrorEarly(t *testing.T) {
 	err := mail.New(mailfake.New()).Message().
 		To("alice@example.com", "Alice").
@@ -149,9 +157,11 @@ func TestBuilderSendReturnsBuildErrorEarly(t *testing.T) {
 	}
 }
 
+// TestBuilderBuildWithMailerReturnsValidationError ensures mailer defaults do not bypass final validation.
 func TestBuilderBuildWithMailerReturnsValidationError(t *testing.T) {
 	_, err := mail.New(mailfake.New()).
 		Message().
+		From("no-reply@example.com", "Example").
 		Subject("Welcome").
 		Text("hello world").
 		Build()
@@ -160,18 +170,44 @@ func TestBuilderBuildWithMailerReturnsValidationError(t *testing.T) {
 	}
 }
 
-func TestMailerSendWithoutDriverFails(t *testing.T) {
-	mailer := mail.New(nil)
-	err := mailer.Send(context.Background(), mail.Message{
-		To:      []mail.Recipient{{Email: "alice@example.com"}},
-		Subject: "Welcome",
-		Text:    "hello world",
-	})
+// TestNewPanicsWithoutDriver ensures a required delivery driver fails fast during wiring.
+func TestNewPanicsWithoutDriver(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("New(nil) should panic")
+		}
+	}()
+	_ = mail.New(nil)
+}
+
+// TestNewPanicsWithTypedNilDriver ensures typed-nil delivery drivers cannot bypass fail-fast wiring.
+func TestNewPanicsWithTypedNilDriver(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("New(typed nil) should panic")
+		}
+	}()
+	var driver *typedNilDriver
+	_ = mail.New(driver)
+}
+
+// TestZeroValueMailerReportsMissingDriver ensures accidental zero-value use returns a clear wiring error.
+func TestZeroValueMailerReportsMissingDriver(t *testing.T) {
+	var mailer mail.Mailer
+	err := mailer.Send(context.Background(), validMessage())
 	if !errors.Is(err, mail.ErrMissingMailer) {
 		t.Fatalf("Send() error = %v, want %v", err, mail.ErrMissingMailer)
 	}
 }
 
+type typedNilDriver struct{}
+
+// Send satisfies mail.Driver for typed-nil construction coverage.
+func (*typedNilDriver) Send(context.Context, mail.Message) error {
+	return nil
+}
+
+// TestAttachmentFromPathFallbackContentType ensures unknown file types use a portable binary media type.
 func TestAttachmentFromPathFallbackContentType(t *testing.T) {
 	if err := os.WriteFile("attachment.unknownext", []byte("hello"), 0o644); err != nil {
 		t.Fatalf("write temp attachment: %v", err)

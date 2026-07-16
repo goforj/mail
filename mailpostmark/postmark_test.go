@@ -3,6 +3,7 @@ package mailpostmark_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,13 +14,19 @@ import (
 	"github.com/goforj/mail/mailpostmark"
 )
 
+// TestNewRequiresServerToken ensures Postmark cannot be constructed without authentication.
 func TestNewRequiresServerToken(t *testing.T) {
 	_, err := mailpostmark.New(mailpostmark.Config{})
 	if err == nil || !strings.Contains(err.Error(), "server token is required") {
 		t.Fatalf("new error = %v, want server token error", err)
 	}
+	_, err = mailpostmark.New(mailpostmark.Config{ServerToken: "token", Endpoint: ":"})
+	if err == nil || !strings.Contains(err.Error(), "endpoint") {
+		t.Fatalf("new error = %v, want endpoint error", err)
+	}
 }
 
+// TestDriverSendPostsExpectedPayload ensures Postmark receives the portable message in its provider schema.
 func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	type payload struct {
 		From          string            `json:"From"`
@@ -130,9 +137,11 @@ func TestDriverSendPostsExpectedPayload(t *testing.T) {
 	}
 }
 
+// TestDriverSendReturnsAPIError ensures non-success Postmark responses preserve provider diagnostics.
 func TestDriverSendReturnsAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		w.Header().Set("X-Postmark-Request-ID", "postmark_req_123")
+		http.Error(w, "super-secret message data", http.StatusBadRequest)
 	}))
 	defer server.Close()
 
@@ -153,5 +162,12 @@ func TestDriverSendReturnsAPIError(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "status 400") {
 		t.Fatalf("send error = %v, want api error", err)
+	}
+	var responseErr *mailpostmark.ResponseError
+	if !errors.As(err, &responseErr) || responseErr.RequestID != "postmark_req_123" {
+		t.Fatalf("send error = %#v, want response error with request id", err)
+	}
+	if strings.Contains(err.Error(), "super-secret") {
+		t.Fatalf("send error leaked provider body: %v", err)
 	}
 }

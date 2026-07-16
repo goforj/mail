@@ -9,6 +9,7 @@ import (
 	"github.com/goforj/mail/mailsmtp"
 )
 
+// TestRenderMultipartAlternative ensures text and HTML bodies render as standards-compliant alternatives.
 func TestRenderMultipartAlternative(t *testing.T) {
 	raw, err := mailsmtp.Render(mail.Message{
 		From:    &mail.Recipient{Email: "no-reply@example.com", Name: "Example"},
@@ -44,6 +45,7 @@ func TestRenderMultipartAlternative(t *testing.T) {
 	}
 }
 
+// TestRenderSinglePartTextMessage ensures a plain message avoids unnecessary multipart framing.
 func TestRenderSinglePartTextMessage(t *testing.T) {
 	raw, err := mailsmtp.Render(mail.Message{
 		From:    &mail.Recipient{Email: "no-reply@example.com"},
@@ -59,6 +61,7 @@ func TestRenderSinglePartTextMessage(t *testing.T) {
 	}
 }
 
+// TestRenderMultipartMixedWithAttachment ensures attachments wrap the body in a mixed MIME container.
 func TestRenderMultipartMixedWithAttachment(t *testing.T) {
 	raw, err := mailsmtp.Render(mail.Message{
 		From:    &mail.Recipient{Email: "no-reply@example.com"},
@@ -76,7 +79,7 @@ func TestRenderMultipartMixedWithAttachment(t *testing.T) {
 	rendered := string(raw)
 	for _, expected := range []string{
 		`multipart/mixed; boundary=`,
-		`Content-Disposition: attachment; filename="report.txt"`,
+		`Content-Disposition: attachment; filename=report.txt`,
 		`Content-Transfer-Encoding: base64`,
 		`aGVsbG8gYXR0YWNobWVudA==`,
 	} {

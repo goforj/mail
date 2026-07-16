@@ -5,6 +5,7 @@ import (
 	"github.com/goforj/mail"
 )
 
+// main keeps this example executable so API drift fails during compilation.
 func main() {
 	original := mail.Message{
 		To:      []mail.Recipient{{Email: "alice@example.com", Name: "Alice"}},

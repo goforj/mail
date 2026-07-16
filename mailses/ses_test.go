@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
-	sestypes "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/goforj/mail"
 )
 
@@ -15,6 +15,7 @@ type stubClient struct {
 	err   error
 }
 
+// SendEmail records the SES request and returns either the configured error or a stable message ID.
 func (s *stubClient) SendEmail(_ context.Context, params *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 	s.input = params
 	if s.err != nil {
@@ -23,6 +24,7 @@ func (s *stubClient) SendEmail(_ context.Context, params *sesv2.SendEmailInput, 
 	return &sesv2.SendEmailOutput{MessageId: aws.String("ses_123")}, nil
 }
 
+// TestNewRequiresRegion ensures SES cannot be constructed without an AWS routing region.
 func TestNewRequiresRegion(t *testing.T) {
 	_, err := New(Config{})
 	if err == nil || err.Error() != "mailses: region is required" {
@@ -30,6 +32,7 @@ func TestNewRequiresRegion(t *testing.T) {
 	}
 }
 
+// TestDriverSendBuildsRawEmailAndTags ensures SES receives the canonical MIME message and deterministic tags.
 func TestDriverSendBuildsRawEmailAndTags(t *testing.T) {
 	client := &stubClient{}
 	driver := newWithClient(client, Config{ConfigurationSetName: "transactional"})
@@ -62,12 +65,13 @@ func TestDriverSendBuildsRawEmailAndTags(t *testing.T) {
 	}
 }
 
+// TestBuildTags ensures message metadata maps to SES tags in stable order.
 func TestBuildTags(t *testing.T) {
 	got := buildTags([]string{"welcome"}, map[string]string{"tenant_id": "tenant_123"})
 	if len(got) != 2 {
 		t.Fatalf("tag count = %d", len(got))
 	}
-	assertTag := func(tag sestypes.MessageTag, name, value string) {
+	assertTag := func(tag types.MessageTag, name, value string) {
 		if tag.Name == nil || *tag.Name != name || tag.Value == nil || *tag.Value != value {
 			t.Fatalf("tag = %#v, want %s=%s", tag, name, value)
 		}

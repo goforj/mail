@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/goforj/mail/maillog"
 )
 
+// TestMailerWritesJSONLogEntry ensures log delivery emits structured metadata without message bodies by default.
 func TestMailerWritesJSONLogEntry(t *testing.T) {
 	var buffer bytes.Buffer
 	now := time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
@@ -45,5 +48,65 @@ func TestMailerWritesJSONLogEntry(t *testing.T) {
 	}
 	if entry["sent_at"] != now.Format(time.RFC3339) {
 		t.Fatalf("sent_at = %#v, want %q", entry["sent_at"], now.Format(time.RFC3339))
+	}
+}
+
+// TestNewPanicsWithNilWriter ensures a required log destination fails fast during wiring.
+func TestNewPanicsWithNilWriter(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("New(nil) should panic")
+		}
+	}()
+	maillog.New(nil)
+}
+
+// TestNewPanicsWithTypedNilWriter ensures typed-nil log destinations cannot bypass fail-fast wiring.
+func TestNewPanicsWithTypedNilWriter(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("New(typed nil) should panic")
+		}
+	}()
+	var writer *bytes.Buffer
+	maillog.New(writer)
+}
+
+// TestWithNowPanicsWithNilSource ensures deterministic clock injection remains a required collaborator when selected.
+func TestWithNowPanicsWithNilSource(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("WithNow(nil) should panic")
+		}
+	}()
+	maillog.WithNow(nil)
+}
+
+// TestDriverSerializesConcurrentWrites ensures concurrent messages cannot interleave JSON records.
+func TestDriverSerializesConcurrentWrites(t *testing.T) {
+	var buffer bytes.Buffer
+	driver := maillog.New(&buffer)
+	message := mail.Message{
+		From:    &mail.Recipient{Email: "no-reply@example.com"},
+		To:      []mail.Recipient{{Email: "alice@example.com"}},
+		Subject: "Welcome",
+		Text:    "hello world",
+	}
+
+	const sends = 50
+	var wait sync.WaitGroup
+	wait.Add(sends)
+	for range sends {
+		go func() {
+			defer wait.Done()
+			if err := driver.Send(context.Background(), message); err != nil {
+				t.Errorf("Send() error = %v", err)
+			}
+		}()
+	}
+	wait.Wait()
+
+	if got, want := len(strings.Split(strings.TrimSpace(buffer.String()), "\n")), sends; got != want {
+		t.Fatalf("log lines = %d, want %d", got, want)
 	}
 }

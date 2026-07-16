@@ -22,6 +22,7 @@ const (
 	testCountEnd   = "<!-- test-count:embed:end -->"
 )
 
+// main renders the reproducible documentation artifacts for this module.
 func main() {
 	if err := run(); err != nil {
 		fmt.Println("Error:", err)
@@ -30,6 +31,7 @@ func main() {
 	fmt.Println("✔ API section updated in README.md")
 }
 
+// run replaces only the marked README API section so hand-written documentation remains untouched.
 func run() error {
 	root, err := findRoot()
 	if err != nil {
@@ -55,6 +57,7 @@ func run() error {
 	return os.WriteFile(readmePath, []byte(out), 0o644)
 }
 
+// FuncDoc captures the metadata needed to render one documented function.
 type FuncDoc struct {
 	Key         string
 	DisplayName string
@@ -64,12 +67,14 @@ type FuncDoc struct {
 	Examples    []Example
 }
 
+// Example captures an executable snippet and its source location.
 type Example struct {
 	Label string
 	Code  string
 	Line  int
 }
 
+// findRoot anchors generation to the library checkout even when invoked from a docs subdirectory.
 func findRoot() (string, error) {
 	wd, _ := os.Getwd()
 	for _, c := range []string{wd, filepath.Join(wd, ".."), filepath.Join(wd, "..", ".."), filepath.Join(wd, "..", "..", "..")} {
@@ -81,11 +86,13 @@ func findRoot() (string, error) {
 	return "", fmt.Errorf("could not find project root")
 }
 
+// fileExists lets root and optional-subpackage discovery ignore absent candidates.
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
+// parseFuncs merges exported APIs across mail subpackages and sorts them for stable rendering.
 func parseFuncs(root string) ([]*FuncDoc, error) {
 	dirs := []struct {
 		path   string
@@ -126,6 +133,7 @@ func parseFuncs(root string) ([]*FuncDoc, error) {
 	return out, nil
 }
 
+// parseFuncsInDir excludes tests and private receivers because the README documents consumer-visible APIs.
 func parseFuncsInDir(out map[string]*FuncDoc, dir, prefix string) error {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(info os.FileInfo) bool {
@@ -142,9 +150,13 @@ func parseFuncsInDir(out map[string]*FuncDoc, dir, prefix string) error {
 				if !ok || fn.Doc == nil || !ast.IsExported(fn.Name.Name) {
 					continue
 				}
+				receiverName := extractReceiverName(fn)
+				if receiverName != "" && !ast.IsExported(receiverName) {
+					continue
+				}
 				displayName := fn.Name.Name
-				if recv := extractReceiverName(fn); recv != "" {
-					displayName = recv + "." + fn.Name.Name
+				if receiverName != "" {
+					displayName = receiverName + "." + fn.Name.Name
 				}
 				if prefix != "" {
 					displayName = prefix + "." + displayName
@@ -170,6 +182,7 @@ func parseFuncsInDir(out map[string]*FuncDoc, dir, prefix string) error {
 	return nil
 }
 
+// extractReceiverName qualifies methods so identically named functions do not collide in the index.
 func extractReceiverName(fn *ast.FuncDecl) string {
 	if fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return ""
@@ -177,6 +190,7 @@ func extractReceiverName(fn *ast.FuncDecl) string {
 	return receiverTypeName(fn.Recv.List[0].Type)
 }
 
+// receiverTypeName unwraps pointer and generic receiver syntax to its declared type name.
 func receiverTypeName(expr ast.Expr) string {
 	switch v := expr.(type) {
 	case *ast.Ident:
@@ -192,6 +206,7 @@ func receiverTypeName(expr ast.Expr) string {
 	}
 }
 
+// extractGroup honors the documentation grouping convention and keeps untagged APIs in Core.
 func extractGroup(group *ast.CommentGroup) string {
 	for _, line := range commentLines(group) {
 		if strings.HasPrefix(line, "@group ") {
@@ -201,6 +216,7 @@ func extractGroup(group *ast.CommentGroup) string {
 	return "Core"
 }
 
+// extractDescription stops before generator directives and examples so prose is not duplicated.
 func extractDescription(group *ast.CommentGroup) string {
 	var lines []string
 	for _, line := range commentLines(group) {
@@ -215,6 +231,7 @@ func extractDescription(group *ast.CommentGroup) string {
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 
+// extractExamples retains source positions so multiple documented cases render in declaration order.
 func extractExamples(fset *token.FileSet, group *ast.CommentGroup) []Example {
 	var examples []Example
 	lines := commentLinesWithPos(fset, group)
@@ -258,6 +275,7 @@ type docLine struct {
 	pos  token.Pos
 }
 
+// commentLines normalizes Go comment markers for directive and prose parsing.
 func commentLines(group *ast.CommentGroup) []string {
 	lines := make([]string, 0, len(group.List))
 	for _, c := range group.List {
@@ -266,6 +284,7 @@ func commentLines(group *ast.CommentGroup) []string {
 	return lines
 }
 
+// commentLinesWithPos preserves token positions needed for deterministic example ordering.
 func commentLinesWithPos(fset *token.FileSet, group *ast.CommentGroup) []docLine {
 	lines := make([]docLine, 0, len(group.List))
 	for _, c := range group.List {
@@ -284,6 +303,7 @@ func commentLinesWithPos(fset *token.FileSet, group *ast.CommentGroup) []docLine
 	return lines
 }
 
+// normalizeIndent removes shared documentation padding without changing relative code indentation.
 func normalizeIndent(lines []string) []string {
 	minIndent := -1
 	for _, line := range lines {
@@ -312,11 +332,13 @@ func normalizeIndent(lines []string) []string {
 	return out
 }
 
+// anchorFor applies one stable slug convention to generated links and headings.
 func anchorFor(displayName string) string {
 	replacer := strings.NewReplacer(".", "-", " ", "-", "_", "-", "/", "-")
 	return strings.ToLower(replacer.Replace(displayName))
 }
 
+// renderAPI groups and sorts the parsed model so README generation is reproducible.
 func renderAPI(funcs []*FuncDoc) string {
 	var buf bytes.Buffer
 	buf.WriteString("## API Index\n\n")
@@ -378,6 +400,7 @@ func renderAPI(funcs []*FuncDoc) string {
 	return strings.TrimSpace(buf.String()) + "\n"
 }
 
+// replaceSection confines generated writes to an explicit marker pair and rejects malformed README structure.
 func replaceSection(input, start, end, replacement string) (string, error) {
 	si := strings.Index(input, start)
 	ei := strings.Index(input, end)
