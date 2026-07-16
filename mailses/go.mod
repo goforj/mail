@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.16
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.60.3
-	github.com/goforj/mail v0.3.0
+	github.com/goforj/mail v0.3.1
 )
 
 require (
