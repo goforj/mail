@@ -26,7 +26,7 @@
 <img src="https://img.shields.io/badge/mailresend-94.6%25-4c9a2a" alt="mailresend coverage">
 <img src="https://img.shields.io/badge/mailsendgrid-96.1%25-4c9a2a" alt="mailsendgrid coverage">
 <img src="https://img.shields.io/badge/mailses-93.0%25-4c9a2a" alt="mailses coverage">
-<img src="https://img.shields.io/badge/mailsmtp-88.4%25-4c9a2a" alt="mailsmtp coverage">
+<img src="https://img.shields.io/badge/mailsmtp-87.9%25-4c9a2a" alt="mailsmtp coverage">
 <!-- package-coverage:embed:end -->
 </p>
 

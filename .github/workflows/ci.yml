@@ -38,7 +38,6 @@ jobs:
       - name: Check every module against staged siblings
         env:
           MAIL_LOCAL_SIBLINGS: "1"
-          MAIL_RELEASE_VERSION: "v0.3.0"
         run: scripts/check-quality.sh
 
       - name: Verify generated examples and API docs
