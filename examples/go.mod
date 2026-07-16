@@ -3,7 +3,7 @@ module github.com/goforj/mail/examples
 go 1.24.0
 
 require (
-	github.com/goforj/mail v0.3.0
+	github.com/goforj/mail v0.3.1
 	github.com/goforj/mail/mailses v0.0.0
 )
 
