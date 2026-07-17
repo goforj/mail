@@ -11,7 +11,6 @@
   <a href="https://github.com/goforj/mail/actions/workflows/ci.yml"><img src="https://github.com/goforj/mail/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.24+-blue?logo=go" alt="Go version"></a>
   <img src="https://img.shields.io/github/v/tag/goforj/mail?label=version&sort=semver&filter=%21mailses%2A" alt="Latest tag">
-  <a href="https://goreportcard.com/report/github.com/goforj/mail"><img src="https://goreportcard.com/badge/github.com/goforj/mail" alt="Go Report Card"></a>
   <a href="https://codecov.io/gh/goforj/mail"><img src="https://codecov.io/gh/goforj/mail/graph/badge.svg?token=PJJVA66P5X" alt="Codecov"></a>
 <!-- test-count:embed:start -->
 <img src="https://img.shields.io/badge/unit_tests-118-brightgreen" alt="Unit tests (executed count)">
