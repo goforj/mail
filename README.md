@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/logo.png?v=1" width="300" alt="mail logo">
+  <img src="https://raw.githubusercontent.com/goforj/mail/main/docs/assets/logo.png" width="300" alt="mail logo">
 </p>
 
 <p align="center">
