@@ -1059,9 +1059,6 @@ fmt.Println(fake.SentCount())
 ```
 <!-- api:embed:end -->
 
-## Docs Tooling
+## Development
 
-- `go run ./docs/examplegen/main.go`
-- `go run ./docs/readme/main.go`
-- `go run ./docs/readme/testcounts/main.go`
-- `./docs/watcher.sh`
+Use `make test` for root-module tests, `make vet` for static checks, and `make generate` to refresh generated documentation. The `docs`, `examples`, and `mailses` directories are separate Go modules and can be tested from their own directories when changed. The docs watcher remains available as `sh docs/watcher.sh`.
