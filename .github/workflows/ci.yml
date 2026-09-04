@@ -41,6 +41,7 @@ jobs:
         run: scripts/check-quality.sh
 
       - name: Verify generated examples and API docs
+        if: matrix.go == '1.24.x'
         run: |
           go run ./docs/examplegen/main.go
           go run ./docs/readme/main.go

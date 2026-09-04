@@ -25,6 +25,6 @@ require (
 	github.com/aws/smithy-go v1.25.0 // indirect
 )
 
-replace github.com/goforj/mail => ..
+replace github.com/goforj/mail => ./..
 
 replace github.com/goforj/mail/mailses => ../mailses
