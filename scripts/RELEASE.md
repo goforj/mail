@@ -1,7 +1,7 @@
 # Releasing mail modules
 
 `scripts/module-manifest.txt` is the source of truth for module ownership. The
-root module and `mailses` are published modules. The `docs` and `examples`
+root module and `mailses` are published modules. The `docs`, `docs/bench`, and `examples`
 modules are repository tooling and must not receive release tags.
 
 ## Pre-release validation

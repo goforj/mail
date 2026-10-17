@@ -31,6 +31,15 @@ jobs:
             go.sum
             mailses/go.sum
             examples/go.sum
+            docs/bench/go.sum
+
+      - name: Set up benchmark tooling
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Verify benchmark artifacts
+        run: make bench-check
 
       - name: Verify formatting
         run: test -z "$(gofmt -l .)"
