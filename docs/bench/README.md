@@ -15,6 +15,15 @@ SMTP sends to a disposable Mailpit container, bound to a random loopback port. T
 
 The module uses relative replacements for the root and SES modules so benchmarks exercise repository source, including unpublished sibling changes. It is tooling and receives no release tags. Production modules keep their existing dependency and Go-version boundaries.
 
-`benchmarks.txt` preserves Go's output. `benchmarks_rows.json` preserves all 56 samples, host and Go versions, the image ID, and fingerprints of the harness, manifests, and measured library sources. `make bench-check` detects stale measurements and verifies that README medians match the raw data. CI checks artifacts and tests the fixture module; it does not refresh performance numbers on shared runners.
+`benchmarks.txt` preserves Go's output. `benchmarks_rows.json` preserves all 56 samples, host and Go versions, the image ID, and fingerprints of the harness, manifests, and measured library sources. `make bench-check` detects stale measurements and verifies that README medians and all four SVG charts match the raw data. CI checks artifacts and tests the fixture module; it does not refresh performance numbers on shared runners.
+
+The README charts follow the sibling Events and Storage reports: dark Foundry backgrounds, Space Grotesk headings, Inter labels, JetBrains Mono values, horizontal bars, and stable driver colors across latency, throughput, bytes, and allocations. Bars use linear scales and each metric sorts in its preferred direction. Throughput is derived from median serial send latency. The numeric labels and expandable table retain the exact medians even when the SMTP latency outlier makes other bars small.
+
+To regenerate the README and SVGs from existing samples without rerunning the workload:
+
+```sh
+node docs/bench/render.mjs
+make bench-check
+```
 
 The GoForj performance page consumes the committed JSON artifact. Regenerate the artifact and README together when changing measured library code.

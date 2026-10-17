@@ -23,6 +23,6 @@ docs-watch: ##@documentation Watch source changes and regenerate documentation.
 bench: ##@benchmarks Measure all Mail drivers using local acceptance fixtures.
 	node docs/bench/run.mjs
 
-bench-check: ##@benchmarks Verify benchmark artifacts and README parity.
+bench-check: ##@benchmarks Verify benchmark artifacts, README, and SVG chart parity.
 	node docs/bench/check.mjs
 	node docs/bench/render.mjs --check
