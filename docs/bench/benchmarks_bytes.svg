@@ -1,40 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="892" viewBox="0 0 1600 892" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="484" viewBox="0 0 1200 484" role="img" aria-labelledby="title description">
 <title id="title">Mail Client Allocated Bytes</title>
 <desc id="description">Medians of seven local fixture samples per driver. Linear bars. Client costs only, not provider latency or inbox delivery.</desc>
 <rect width="100%" height="100%" rx="8" fill="#1A1620"/>
-<text x="800" y="44" text-anchor="middle" fill="#FFFFFF" font-size="34" font-weight="700" letter-spacing="-1.2" font-family="Space Grotesk, Inter, system-ui, sans-serif">Mail Client Allocated Bytes</text>
-<text x="800" y="80" text-anchor="middle" fill="#A9A1B3" font-size="22" font-family="Inter, system-ui, sans-serif">Local acceptance fixtures · median of 7 samples · linear scale · lower is better</text>
-<text x="240" y="150" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">Fake</text>
-<rect x="260" y="120" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="120" width="104" height="44" rx="8" fill="#A9A1B3"/>
-<text x="380" y="150" text-anchor="start" fill="#FFFFFF" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">9,450 B/op</text>
-<text x="240" y="246" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">Log</text>
-<rect x="260" y="216" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="216" width="112" height="44" rx="8" fill="#B58AE8"/>
-<text x="388" y="246" text-anchor="start" fill="#FFFFFF" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">10,192 B/op</text>
-<text x="240" y="342" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">Mailgun</text>
-<rect x="260" y="312" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="312" width="302" height="44" rx="8" fill="#FF6B85"/>
-<text x="578" y="342" text-anchor="start" fill="#FFFFFF" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">27,414 B/op</text>
-<text x="240" y="438" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">SendGrid</text>
-<rect x="260" y="408" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="408" width="363" height="44" rx="8" fill="#5FCFA8"/>
-<text x="639" y="438" text-anchor="start" fill="#FFFFFF" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">32,911 B/op</text>
-<text x="240" y="534" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">Resend</text>
-<rect x="260" y="504" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="504" width="367" height="44" rx="8" fill="#7D6EE7"/>
-<text x="643" y="534" text-anchor="start" fill="#FFFFFF" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">33,298 B/op</text>
-<text x="240" y="630" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">Postmark</text>
-<rect x="260" y="600" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="600" width="368" height="44" rx="8" fill="#FFB454"/>
-<text x="644" y="630" text-anchor="start" fill="#FFFFFF" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">33,426 B/op</text>
-<text x="240" y="726" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">SMTP</text>
-<rect x="260" y="696" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="696" width="648" height="44" rx="8" fill="#FF5E3A"/>
-<text x="924" y="726" text-anchor="start" fill="#FFFFFF" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">58,850 B/op</text>
-<text x="240" y="822" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">SES</text>
-<rect x="260" y="792" width="1170" height="44" rx="8" fill="#2C2734" stroke="#3D3349"/>
-<rect x="260" y="792" width="1170" height="44" rx="8" fill="#FFC24D"/>
-<text x="1414" y="822" text-anchor="end" fill="#08070A" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">106,222 B/op</text>
+<text x="600" y="32" text-anchor="middle" fill="#FFFFFF" font-size="26" font-weight="700" letter-spacing="-.6" font-family="Space Grotesk, Inter, system-ui, sans-serif">Mail Client Allocated Bytes</text>
+<text x="600" y="60" text-anchor="middle" fill="#A9A1B3" font-size="16" font-family="Inter, system-ui, sans-serif">Local acceptance fixtures · median of 7 samples · linear scale · lower is better</text>
+<text x="154" y="112" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Fake</text>
+<rect x="170" y="92" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="92" width="83" height="28" rx="5" fill="#A9A1B3"/>
+<text x="269" y="112" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">9,450 B/op</text>
+<text x="154" y="160" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Log</text>
+<rect x="170" y="140" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="140" width="89" height="28" rx="5" fill="#B58AE8"/>
+<text x="275" y="160" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">10,192 B/op</text>
+<text x="154" y="208" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Mailgun</text>
+<rect x="170" y="188" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="188" width="240" height="28" rx="5" fill="#FF6B85"/>
+<text x="426" y="208" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">27,414 B/op</text>
+<text x="154" y="256" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SendGrid</text>
+<rect x="170" y="236" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="236" width="288" height="28" rx="5" fill="#5FCFA8"/>
+<text x="474" y="256" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">32,911 B/op</text>
+<text x="154" y="304" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Resend</text>
+<rect x="170" y="284" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="284" width="292" height="28" rx="5" fill="#7D6EE7"/>
+<text x="478" y="304" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">33,298 B/op</text>
+<text x="154" y="352" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Postmark</text>
+<rect x="170" y="332" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="332" width="293" height="28" rx="5" fill="#FFB454"/>
+<text x="479" y="352" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">33,426 B/op</text>
+<text x="154" y="400" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SMTP</text>
+<rect x="170" y="380" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="380" width="515" height="28" rx="5" fill="#FF5E3A"/>
+<text x="701" y="400" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">58,850 B/op</text>
+<text x="154" y="448" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SES</text>
+<rect x="170" y="428" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
+<rect x="170" y="428" width="930" height="28" rx="5" fill="#FFC24D"/>
+<text x="1084" y="448" text-anchor="end" fill="#08070A" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">106,222 B/op</text>
 </svg>

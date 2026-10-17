@@ -25,8 +25,8 @@ const xml = value => String(value).replace(/[&<>"']/g, character=>({ '&':'&amp;'
 // renderChart mirrors the horizontal SVG layout in Events and Storage reports.
 const renderChart = metric => {
  const sorted = [...rows].sort((a,b)=>(metric.higher?-1:1)*(metric.value(a)-metric.value(b)) || a.driver.localeCompare(b.driver))
- const width=1600,left=260,right=170,top=120,barHeight=44,rowGap=96
- const height=top+barHeight+(sorted.length-1)*rowGap+56,chartWidth=width-left-right
+ const width=1200,left=170,right=100,top=92,barHeight=28,rowGap=48
+ const height=top+barHeight+(sorted.length-1)*rowGap+28,chartWidth=width-left-right
  const max=Math.max(...sorted.map(metric.value)) || 1
  const svg = [
   '<?xml version="1.0" encoding="UTF-8"?>',
@@ -34,17 +34,17 @@ const renderChart = metric => {
   `<title id="title">${xml(metric.title)}</title>`,
   '<desc id="description">Medians of seven local fixture samples per driver. Linear bars. Client costs only, not provider latency or inbox delivery.</desc>',
   '<rect width="100%" height="100%" rx="8" fill="#1A1620"/>',
-  `<text x="800" y="44" text-anchor="middle" fill="#FFFFFF" font-size="34" font-weight="700" letter-spacing="-1.2" font-family="Space Grotesk, Inter, system-ui, sans-serif">${xml(metric.title)}</text>`,
-  `<text x="800" y="80" text-anchor="middle" fill="#A9A1B3" font-size="22" font-family="Inter, system-ui, sans-serif">Local acceptance fixtures · median of 7 samples · linear scale · ${metric.higher?'higher':'lower'} is better</text>`,
+  `<text x="600" y="32" text-anchor="middle" fill="#FFFFFF" font-size="26" font-weight="700" letter-spacing="-.6" font-family="Space Grotesk, Inter, system-ui, sans-serif">${xml(metric.title)}</text>`,
+  `<text x="600" y="60" text-anchor="middle" fill="#A9A1B3" font-size="16" font-family="Inter, system-ui, sans-serif">Local acceptance fixtures · median of 7 samples · linear scale · ${metric.higher?'higher':'lower'} is better</text>`,
  ]
  for (const [index,row] of sorted.entries()) {
   const y=top+index*rowGap,barWidth=Math.max(4,Math.round(metric.value(row)/max*chartWidth))
-  const inside=barWidth>chartWidth-280,valueX=left+barWidth+(inside?-16:16)
+  const inside=barWidth>chartWidth-210,valueX=left+barWidth+(inside?-16:16)
   svg.push(
-   `<text x="${left-20}" y="${y+30}" text-anchor="end" fill="#A9A1B3" font-size="28" font-family="Inter, system-ui, sans-serif">${xml(names[row.driver])}</text>`,
-   `<rect x="${left}" y="${y}" width="${chartWidth}" height="${barHeight}" rx="8" fill="#2C2734" stroke="#3D3349"/>`,
-   `<rect x="${left}" y="${y}" width="${barWidth}" height="${barHeight}" rx="8" fill="${colors[row.driver]}"/>`,
-   `<text x="${valueX}" y="${y+30}" text-anchor="${inside?'end':'start'}" fill="${inside?'#08070A':'#FFFFFF'}" font-size="24" font-family="JetBrains Mono, ui-monospace, monospace">${xml(metric.format(metric.value(row)))}</text>`,
+   `<text x="${left-16}" y="${y+20}" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">${xml(names[row.driver])}</text>`,
+   `<rect x="${left}" y="${y}" width="${chartWidth}" height="${barHeight}" rx="5" fill="#2C2734" stroke="#3D3349"/>`,
+   `<rect x="${left}" y="${y}" width="${barWidth}" height="${barHeight}" rx="5" fill="${colors[row.driver]}"/>`,
+   `<text x="${valueX}" y="${y+20}" text-anchor="${inside?'end':'start'}" fill="${inside?'#08070A':'#FFFFFF'}" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">${xml(metric.format(metric.value(row)))}</text>`,
   )
  }
  return [...svg,'</svg>',''].join('\n')
