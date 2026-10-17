@@ -18,3 +18,11 @@ generate: ##@documentation Regenerate the documentation.
 
 docs-watch: ##@documentation Watch source changes and regenerate documentation.
 	sh docs/watcher.sh
+
+##@benchmarks
+bench: ##@benchmarks Measure all Mail drivers using local acceptance fixtures.
+	node docs/bench/run.mjs
+
+bench-check: ##@benchmarks Verify benchmark artifacts and README parity.
+	node docs/bench/check.mjs
+	node docs/bench/render.mjs --check

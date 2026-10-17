@@ -150,6 +150,29 @@ This quality pass deliberately tightens the pre-v1 contract:
 
 GoForj-generated mailers already configure `WithDefaultFrom`, so their normal send shape is unchanged.
 
+## Benchmarks
+
+Run `make bench` to measure all eight Mail drivers against local acceptance fixtures. Run `make bench-check` to verify source fingerprints, raw samples, and generated README medians.
+
+<!-- benchmarks:start -->
+Median of seven one-second samples, go1.27.2 darwin/arm64, Apple M4 Max, GOMAXPROCS=1. One recipient, text and HTML bodies, and a 4 KiB attachment.
+
+| Driver | Send return | Bytes/op | Allocs/op |
+| :-- | --: | --: | --: |
+| Fake | 2.69 µs | 9,450 | 30 |
+| Log | 3.88 µs | 10,192 | 34 |
+| Mailgun | 48.05 µs | 27,414 | 223 |
+| Resend | 52.99 µs | 33,298 | 113 |
+| Postmark | 53.52 µs | 33,426 | 116 |
+| SendGrid | 53.60 µs | 32,911 | 103 |
+| SES | 103.72 µs | 106,222 | 610 |
+| SMTP | 3.71 ms | 58,850 | 316 |
+
+These are local client costs, not a ranking of real provider latency or inbox delivery. API drivers use HTTP acceptance fixtures in separate processes without TLS; SMTP uses local Mailpit. Log serializes to `io.Discard`; Fake resets every 128 sends, with reset cost included. Fixture-server allocations stay outside the client measurements.
+
+[Raw samples](docs/bench/benchmarks_rows.json) · [Original Go output](docs/bench/benchmarks.txt) · [Workload and reproduction](docs/bench/README.md)
+<!-- benchmarks:end -->
+
 ## API
 
 <!-- api:embed:start -->
