@@ -8,33 +8,33 @@
 <text x="154" y="112" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Fake</text>
 <rect x="170" y="92" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
 <rect x="170" y="92" width="4" height="28" rx="5" fill="#A9A1B3"/>
-<text x="190" y="112" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">2.69 µs</text>
+<text x="190" y="112" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">3.21 µs</text>
 <text x="154" y="160" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Log</text>
 <rect x="170" y="140" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
 <rect x="170" y="140" width="4" height="28" rx="5" fill="#B58AE8"/>
-<text x="190" y="160" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">3.88 µs</text>
+<text x="190" y="160" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">4.49 µs</text>
 <text x="154" y="208" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Mailgun</text>
 <rect x="170" y="188" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="188" width="12" height="28" rx="5" fill="#FF6B85"/>
-<text x="198" y="208" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">48.05 µs</text>
-<text x="154" y="256" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Resend</text>
+<rect x="170" y="188" width="18" height="28" rx="5" fill="#FF6B85"/>
+<text x="204" y="208" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">48.64 µs</text>
+<text x="154" y="256" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SendGrid</text>
 <rect x="170" y="236" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="236" width="13" height="28" rx="5" fill="#7D6EE7"/>
-<text x="199" y="256" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">52.99 µs</text>
+<rect x="170" y="236" width="23" height="28" rx="5" fill="#5FCFA8"/>
+<text x="209" y="256" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">61.18 µs</text>
 <text x="154" y="304" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Postmark</text>
 <rect x="170" y="284" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="284" width="13" height="28" rx="5" fill="#FFB454"/>
-<text x="199" y="304" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">53.52 µs</text>
-<text x="154" y="352" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SendGrid</text>
+<rect x="170" y="284" width="23" height="28" rx="5" fill="#FFB454"/>
+<text x="209" y="304" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">62.49 µs</text>
+<text x="154" y="352" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Resend</text>
 <rect x="170" y="332" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="332" width="13" height="28" rx="5" fill="#5FCFA8"/>
-<text x="199" y="352" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">53.60 µs</text>
+<rect x="170" y="332" width="25" height="28" rx="5" fill="#7D6EE7"/>
+<text x="211" y="352" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">66.34 µs</text>
 <text x="154" y="400" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SES</text>
 <rect x="170" y="380" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="380" width="26" height="28" rx="5" fill="#FFC24D"/>
-<text x="212" y="400" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">103.72 µs</text>
+<rect x="170" y="380" width="43" height="28" rx="5" fill="#FFC24D"/>
+<text x="229" y="400" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">114.97 µs</text>
 <text x="154" y="448" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SMTP</text>
 <rect x="170" y="428" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
 <rect x="170" y="428" width="930" height="28" rx="5" fill="#FF5E3A"/>
-<text x="1084" y="448" text-anchor="end" fill="#08070A" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">3.71 ms</text>
+<text x="1084" y="448" text-anchor="end" fill="#08070A" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">2.49 ms</text>
 </svg>
