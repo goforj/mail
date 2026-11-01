@@ -8,33 +8,33 @@
 <text x="154" y="112" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Fake</text>
 <rect x="170" y="92" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
 <rect x="170" y="92" width="930" height="28" rx="5" fill="#A9A1B3"/>
-<text x="1084" y="112" text-anchor="end" fill="#08070A" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">372,300.82 sends/s</text>
+<text x="1084" y="112" text-anchor="end" fill="#08070A" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">311,138.77 sends/s</text>
 <text x="154" y="160" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Log</text>
 <rect x="170" y="140" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="140" width="643" height="28" rx="5" fill="#B58AE8"/>
-<text x="829" y="160" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">257,400.26 sends/s</text>
+<rect x="170" y="140" width="666" height="28" rx="5" fill="#B58AE8"/>
+<text x="852" y="160" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">222,667.56 sends/s</text>
 <text x="154" y="208" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Mailgun</text>
 <rect x="170" y="188" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="188" width="52" height="28" rx="5" fill="#FF6B85"/>
-<text x="238" y="208" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">20,813.82 sends/s</text>
-<text x="154" y="256" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Resend</text>
+<rect x="170" y="188" width="61" height="28" rx="5" fill="#FF6B85"/>
+<text x="247" y="208" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">20,557.94 sends/s</text>
+<text x="154" y="256" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SendGrid</text>
 <rect x="170" y="236" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="236" width="47" height="28" rx="5" fill="#7D6EE7"/>
-<text x="233" y="256" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">18,870.77 sends/s</text>
+<rect x="170" y="236" width="49" height="28" rx="5" fill="#5FCFA8"/>
+<text x="235" y="256" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">16,346.01 sends/s</text>
 <text x="154" y="304" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Postmark</text>
 <rect x="170" y="284" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="284" width="47" height="28" rx="5" fill="#FFB454"/>
-<text x="233" y="304" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">18,684.6 sends/s</text>
-<text x="154" y="352" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SendGrid</text>
+<rect x="170" y="284" width="48" height="28" rx="5" fill="#FFB454"/>
+<text x="234" y="304" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">16,001.54 sends/s</text>
+<text x="154" y="352" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">Resend</text>
 <rect x="170" y="332" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="332" width="47" height="28" rx="5" fill="#5FCFA8"/>
-<text x="233" y="352" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">18,658.11 sends/s</text>
+<rect x="170" y="332" width="45" height="28" rx="5" fill="#7D6EE7"/>
+<text x="231" y="352" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">15,073.18 sends/s</text>
 <text x="154" y="400" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SES</text>
 <rect x="170" y="380" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
-<rect x="170" y="380" width="24" height="28" rx="5" fill="#FFC24D"/>
-<text x="210" y="400" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">9,641.71 sends/s</text>
+<rect x="170" y="380" width="26" height="28" rx="5" fill="#FFC24D"/>
+<text x="212" y="400" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">8,698.15 sends/s</text>
 <text x="154" y="448" text-anchor="end" fill="#A9A1B3" font-size="20" font-family="Inter, system-ui, sans-serif">SMTP</text>
 <rect x="170" y="428" width="930" height="28" rx="5" fill="#2C2734" stroke="#3D3349"/>
 <rect x="170" y="428" width="4" height="28" rx="5" fill="#FF5E3A"/>
-<text x="190" y="448" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">269.18 sends/s</text>
+<text x="190" y="448" text-anchor="start" fill="#FFFFFF" font-size="18" font-family="JetBrains Mono, ui-monospace, monospace">401.87 sends/s</text>
 </svg>
